@@ -1,0 +1,75 @@
+{
+  "title": "India Stock Fundamentals Scraper",
+  "description": "Get Indian stock prices, ratios, financial statements, and shareholding data. No login or API key required.",
+  "type": "object",
+  "schemaVersion": 1,
+  "required": ["symbols"],
+  "properties": {
+    "symbols": {
+      "title": "NSE symbols or BSE codes",
+      "description": "Examples: RELIANCE, TCS, INFY, HDFCBANK, or 500325.",
+      "type": "array",
+      "editor": "stringList",
+      "default": ["RELIANCE", "TCS"],
+      "uniqueItems": true,
+      "items": { "type": "string" }
+    },
+    "source": {
+      "title": "Data source",
+      "description": "Use Screener.in, Moneycontrol, or merge both into one record per stock.",
+      "type": "string",
+      "editor": "select",
+      "enum": ["both", "screener", "moneycontrol"],
+      "enumTitles": ["Both sources", "Screener.in only", "Moneycontrol only"],
+      "default": "both"
+    },
+    "consolidated": {
+      "title": "Use consolidated financials",
+      "description": "Use consolidated Screener.in results when available.",
+      "type": "boolean",
+      "default": true,
+      "editor": "checkbox"
+    },
+    "includeFinancials": {
+      "title": "Include quarterly and annual results",
+      "description": "Adds the latest four quarters and five annual periods from Screener.in.",
+      "type": "boolean",
+      "default": true,
+      "editor": "checkbox"
+    },
+    "includeShareholding": {
+      "title": "Include shareholding pattern",
+      "description": "Adds the latest promoter, FII, DII, and public holdings from Screener.in.",
+      "type": "boolean",
+      "default": true,
+      "editor": "checkbox"
+    },
+    "maxResults": {
+      "title": "Maximum stocks",
+      "description": "Limits the number of unique symbols processed in one run.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 10,
+      "editor": "number"
+    },
+    "maxConcurrency": {
+      "title": "Concurrency",
+      "description": "Number of stocks processed at the same time. Keep this modest to avoid rate limits.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "default": 3,
+      "editor": "number"
+    },
+    "proxyConfiguration": {
+      "title": "Proxy configuration",
+      "description": "Optional proxy settings. Datacenter or no proxy usually works; residential proxy can improve reliability at scale.",
+      "type": "object",
+      "editor": "proxy",
+      "default": {
+        "useApifyProxy": true
+      }
+    }
+  }
+}

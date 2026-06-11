@@ -1,0 +1,12 @@
+{
+  "symbols": ["RELIANCE", "TCS"],
+  "source": "both",
+  "consolidated": true,
+  "includeFinancials": true,
+  "includeShareholding": true,
+  "maxResults": 2,
+  "maxConcurrency": 2,
+  "proxyConfiguration": {
+    "useApifyProxy": false
+  }
+}

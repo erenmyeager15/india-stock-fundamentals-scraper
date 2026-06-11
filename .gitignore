@@ -1,0 +1,14 @@
+node_modules/
+dist/
+storage/
+apify_storage/
+crawlee_storage/
+*.log
+.env
+.env.local
+.DS_Store
+Thumbs.db
+*.tsbuildinfo
+coverage/
+build/
+tmp/

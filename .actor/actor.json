@@ -1,0 +1,70 @@
+{
+  "actorSpecification": 1,
+  "name": "india-stock-fundamentals-scraper",
+  "title": "India Stock Fundamentals: Screener + Moneycontrol",
+  "description": "Indian stock prices, ratios, financials, and shareholding data from Screener.in and Moneycontrol.",
+  "version": "1.0",
+  "input": "../INPUT_SCHEMA.json",
+  "dockerfile": "Dockerfile",
+  "defaultRunOptions": {
+    "build": "latest",
+    "memoryMbytes": 512,
+    "timeoutSecs": 900
+  },
+  "pricingInfo": {
+    "pricingModel": "PAY_PER_EVENT",
+    "pricingPerEvent": {
+      "actorChargeEvents": {
+        "stock-scraped": {
+          "eventTitle": "Stock scraped",
+          "eventDescription": "One normalized stock record stored in the default dataset.",
+          "eventPriceUsd": 0.002,
+          "isPrimaryEvent": true
+        }
+      }
+    }
+  },
+  "storages": {
+    "dataset": {
+      "actorSpecification": 1,
+      "views": {
+        "stocks": {
+          "title": "Indian stock fundamentals",
+          "transformation": {
+            "fields": [
+              "symbol",
+              "companyName",
+              "currentPrice",
+              "dayChangePercent",
+              "marketCapCrore",
+              "peRatio",
+              "pbRatio",
+              "roePercent",
+              "rocePercent",
+              "promoterHoldingPercent",
+              "sector",
+              "scrapedAt"
+            ]
+          },
+          "display": {
+            "component": "table",
+            "properties": {
+              "symbol": { "label": "Symbol", "format": "text" },
+              "companyName": { "label": "Company", "format": "text" },
+              "currentPrice": { "label": "Price (INR)", "format": "number" },
+              "dayChangePercent": { "label": "Day change %", "format": "number" },
+              "marketCapCrore": { "label": "Market cap (Cr)", "format": "number" },
+              "peRatio": { "label": "P/E", "format": "number" },
+              "pbRatio": { "label": "P/B", "format": "number" },
+              "roePercent": { "label": "ROE %", "format": "number" },
+              "rocePercent": { "label": "ROCE %", "format": "number" },
+              "promoterHoldingPercent": { "label": "Promoter %", "format": "number" },
+              "sector": { "label": "Sector", "format": "text" },
+              "scrapedAt": { "label": "Scraped at", "format": "date" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
