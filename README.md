@@ -166,6 +166,12 @@ Local `input.json` disables the Apify proxy. The Actor input schema enables it b
 - `maxResults` is capped at 100 unique stocks per run.
 - This Actor provides public market data for research and automation, not investment advice.
 
+## Responsible Use
+
+This Actor is intended for lawful collection of publicly available information only. Users are responsible for ensuring their use complies with the source website's terms, robots.txt, applicable privacy laws, including India's DPDP Act, and all local regulations.
+
+Do not use this Actor to collect, store, sell, or misuse personal data without a lawful basis. The Actor author is not responsible for misuse by end users.
+
 ## License
 
 Apache-2.0. See `LICENSE`.
