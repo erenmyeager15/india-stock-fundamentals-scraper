@@ -68,7 +68,7 @@
       "type": "object",
       "editor": "proxy",
       "default": {
-        "useApifyProxy": true
+        "useApifyProxy": false
       }
     }
   }

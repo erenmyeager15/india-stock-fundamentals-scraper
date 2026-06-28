@@ -1,0 +1,14 @@
+{
+  "actorOutputSchemaVersion": 1,
+  "title": "India Stock Fundamentals Output",
+  "description": "Structured Indian stock fundamentals with symbols, company names, current prices, daily change, market cap, valuation ratios, profitability ratios, promoter holding, sector, and scraped timestamps.",
+  "type": "object",
+  "properties": {
+    "results": {
+      "type": "string",
+      "title": "Indian stock fundamentals records",
+      "description": "Clean dataset items containing public stock fundamentals and valuation metrics for Indian listed companies.",
+      "template": "{{links.apiDefaultDatasetUrl}}/items"
+    }
+  }
+}

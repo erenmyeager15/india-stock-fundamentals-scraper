@@ -19,10 +19,15 @@ function errorMessage(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
 }
 
-async function runPool<T>(items: T[], concurrency: number, handler: (item: T) => Promise<void>): Promise<void> {
+async function runPool<T>(
+    items: T[],
+    concurrency: number,
+    handler: (item: T) => Promise<void>,
+    shouldStop: () => boolean,
+): Promise<void> {
     let nextIndex = 0;
     const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
-        while (nextIndex < items.length) {
+        while (!shouldStop() && nextIndex < items.length) {
             const index = nextIndex++;
             await handler(items[index]);
         }
@@ -47,10 +52,13 @@ try {
     const wantsMoneycontrol = input.source === 'moneycontrol' || input.source === 'both';
     let pushed = 0;
     let failed = 0;
+    let spendingLimitReached = false;
 
     log.info(`Scraping ${symbols.length} stock(s) from ${input.source} with concurrency ${input.maxConcurrency}.`);
 
     await runPool(symbols, input.maxConcurrency, async (symbol) => {
+        if (spendingLimitReached) return;
+
         let screener: ScreenerData | null = null;
         let moneycontrol: MoneycontrolData | null = null;
         const errors = { screener: null as string | null, moneycontrol: null as string | null };
@@ -72,6 +80,9 @@ try {
         }
         await Promise.all(tasks);
 
+        // Another worker may have reached the spending limit while these requests were in flight.
+        if (spendingLimitReached) return;
+
         if (!screener && !moneycontrol) {
             failed++;
             log.error(`No data returned for ${symbol}.`, errors);
@@ -85,13 +96,25 @@ try {
             moneycontrol,
             errors,
         );
-        await Actor.pushData(record);
-        await Actor.charge({ eventName: 'stock-scraped' });
-        pushed++;
-        log.info(`Stored ${record.symbol}: ${record.companyName ?? 'company name unavailable'}.`);
-    });
+        const chargeResult = await Actor.pushData(record, 'stock-scraped');
+        const recordWasSaved = chargeResult.chargedCount > 0 || !chargeResult.eventChargeLimitReached;
+        if (recordWasSaved) pushed++;
 
-    log.info(`Finished. Stored ${pushed} stock record(s); ${failed} request(s) returned no usable data.`);
+        if (chargeResult.eventChargeLimitReached) {
+            spendingLimitReached = true;
+            const message = `Stopped at the user's spending limit after ${pushed} stock record(s).`;
+            await Actor.setStatusMessage(message);
+            log.warning(message);
+            return;
+        }
+
+        log.info(`Stored ${record.symbol}: ${record.companyName ?? 'company name unavailable'}.`);
+    }, () => spendingLimitReached);
+
+    if (!spendingLimitReached) {
+        await Actor.setStatusMessage(`Finished with ${pushed} stock record(s); ${failed} failed.`);
+        log.info(`Finished. Stored ${pushed} stock record(s); ${failed} request(s) returned no usable data.`);
+    }
 } finally {
     await Actor.exit();
 }

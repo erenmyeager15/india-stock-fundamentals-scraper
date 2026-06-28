@@ -2,6 +2,8 @@
 
 Scrape Indian stock fundamentals - live prices, valuation ratios, quarterly and annual financial results, growth metrics, and shareholding data - from Screener.in and Moneycontrol. This India stock scraper accepts NSE symbols or BSE codes and returns one clean, normalized record per stock. Export to JSON, CSV, Excel, or HTML, or pull via the Apify API. No login and no API key required.
 
+This Actor provides public market data for research and informational use only. It is not financial advice.
+
 Built with Node.js 20, TypeScript, and the Apify SDK using browser-free HTTP scraping. It resolves exact NSE/BSE symbols through Moneycontrol autocomplete, merges both sources into a single record per stock, and adds retries, timeouts, deduplication, and bounded concurrency so runs stay reliable at scale.
 
 ## What It Extracts
@@ -33,7 +35,7 @@ Financial statement values are reported in INR crores. Prices and per-share valu
 
 ## Pricing
 
-This Actor uses Apify Pay Per Event pricing. You pay only for successful stock records stored in the dataset. Selecting both sources still creates and charges for one merged stock record. Failed symbols that return no usable data are not stored and are not charged.
+This Actor uses Apify Pay Per Event pricing. Each successful stock record is saved and charged atomically. Selecting both sources still creates and charges for one merged stock record. Failed symbols are not billed, and workers stop taking new symbols when the user's spending limit is reached.
 
 | Event name | Price per event | 10 stocks | 100 stocks | 1,000 stocks |
 | --- | ---: | ---: | ---: | ---: |
@@ -50,7 +52,7 @@ This Actor uses Apify Pay Per Event pricing. You pay only for successful stock r
 | `includeShareholding` | boolean | no | `true` | Include latest promoter, FII, DII, and public holdings |
 | `maxResults` | integer | no | `10` | Maximum unique stocks, up to 100 |
 | `maxConcurrency` | integer | no | `3` | Parallel stocks, from 1 to 10 |
-| `proxyConfiguration` | object | no | Apify proxy | Optional Apify proxy configuration |
+| `proxyConfiguration` | object | no | Proxy off | Optional Apify proxy configuration |
 
 ### Example input
 
@@ -64,7 +66,7 @@ This Actor uses Apify Pay Per Event pricing. You pay only for successful stock r
   "maxResults": 10,
   "maxConcurrency": 3,
   "proxyConfiguration": {
-    "useApifyProxy": true
+    "useApifyProxy": false
   }
 }
 ```
@@ -77,7 +79,16 @@ This Actor uses Apify Pay Per Event pricing. You pay only for successful stock r
 4. Toggle `includeFinancials` and `includeShareholding`, then set `maxResults` (start small to test).
 5. Run the Actor, then export results as JSON, CSV, Excel, or HTML, or pull them via the Apify API.
 
-## Sample Output
+## Output dataset
+
+The Actor saves one normalized dataset row per stock symbol. The main table highlights
+the most useful fields for quick research — symbol, company, price, day change, market
+cap, valuation ratios, ROE/ROCE, promoter holding, sector, and timestamp — while the
+full JSON record can also include quarterly results, annual results, source status,
+and raw source values when enabled. Export results as JSON, CSV, Excel, or HTML, or
+consume them via the Apify API.
+
+### Sample output
 
 ```json
 {
@@ -143,7 +154,7 @@ Original source-specific values remain available under `sourceData`.
 2. Fetches fundamentals from Screener.in and live quote data from Moneycontrol over HTTP, based on the selected `source`.
 3. Normalizes both sources into one record per stock, including optional quarterly/annual results and shareholding.
 4. Deduplicates symbols and records per-source status under `sourceStatus`.
-5. Charges `stock-scraped` only after a clean record is saved, then writes it to the Apify Dataset.
+5. Atomically saves each clean record and charges `stock-scraped`, stopping new work at the spending limit.
 
 ## Local Development
 
@@ -155,7 +166,7 @@ Copy-Item input.json storage\key_value_stores\default\INPUT.json
 npm start
 ```
 
-Local `input.json` disables the Apify proxy. The Actor input schema enables it by default for cloud runs.
+The Actor keeps proxy usage disabled by default. Enable it only when source blocking or rate limits require rotation.
 
 ## Known Limits
 

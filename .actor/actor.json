@@ -2,9 +2,11 @@
   "actorSpecification": 1,
   "name": "india-stock-fundamentals-scraper",
   "title": "India Stock Fundamentals: Screener + Moneycontrol",
-  "description": "Indian stock prices, ratios, financials, and shareholding data from Screener.in and Moneycontrol.",
+  "description": "Scrape Indian stock fundamentals from Screener.in and Moneycontrol: prices, valuation ratios, market cap, ROE, ROCE, quarterly/annual financials, and shareholding data for research workflows.",
   "version": "1.0",
   "input": "../INPUT_SCHEMA.json",
+  "readme": "../README.md",
+  "output": "./output_schema.json",
   "dockerfile": "Dockerfile",
   "defaultRunOptions": {
     "build": "latest",
