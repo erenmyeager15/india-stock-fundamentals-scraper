@@ -2,12 +2,17 @@
   "actorSpecification": 1,
   "name": "india-stock-fundamentals-scraper",
   "title": "India Stock Fundamentals: Screener + Moneycontrol",
-  "description": "Scrape Indian stock fundamentals from Screener.in and Moneycontrol: prices, valuation ratios, market cap, ROE, ROCE, quarterly/annual financials, and shareholding data for research workflows.",
+  "description": "Scrape public Indian stock fundamentals from Screener.in and Moneycontrol. Get prices, ratios, market cap, ROE, ROCE, optional statements, and shareholding for NSE/BSE symbols.",
   "version": "1.0",
+  "categories": ["BUSINESS", "DEVELOPER_TOOLS", "OTHER"],
   "input": "../INPUT_SCHEMA.json",
   "readme": "../README.md",
   "output": "./output_schema.json",
   "dockerfile": "Dockerfile",
+  "exampleRunInput": {
+    "body": "{\"symbols\":[\"RELIANCE\"],\"source\":\"both\",\"consolidated\":true,\"includeFinancials\":false,\"includeShareholding\":false,\"maxResults\":1,\"maxConcurrency\":1,\"proxyConfiguration\":{\"useApifyProxy\":false}}",
+    "contentType": "application/json; charset=utf-8"
+  },
   "defaultRunOptions": {
     "build": "latest",
     "memoryMbytes": 512,
@@ -17,15 +22,24 @@
     "pricingModel": "PAY_PER_EVENT",
     "pricingPerEvent": {
       "actorChargeEvents": {
+        "apify-actor-start": {
+          "eventTitle": "Actor Start",
+          "eventDescription": "Charged when the Actor starts running. Number of events charged depends on Actor memory (one event per GB, minimum one event).",
+          "eventPriceUsd": 0.00005,
+          "isOneTimeEvent": true
+        },
         "stock-scraped": {
           "eventTitle": "Stock scraped",
           "eventDescription": "One normalized stock record stored in the default dataset.",
           "eventPriceUsd": 0.002,
-          "isPrimaryEvent": true
+          "isPrimaryEvent": true,
+          "isOneTimeEvent": false
         }
       }
     }
   },
+  "minMemoryMbytes": 256,
+  "maxMemoryMbytes": 1024,
   "storages": {
     "dataset": {
       "actorSpecification": 1,

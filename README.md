@@ -1,94 +1,62 @@
-# India Stock Fundamentals Scraper - Prices, Ratios, Financials & Shareholding
+# India Stock Fundamentals Scraper - Screener.in + Moneycontrol
 
-Scrape Indian stock fundamentals - live prices, valuation ratios, quarterly and annual financial results, growth metrics, and shareholding data - from Screener.in and Moneycontrol. This India stock scraper accepts NSE symbols or BSE codes and returns one clean, normalized record per stock. Export to JSON, CSV, Excel, or HTML, or pull via the Apify API. No login and no API key required.
+Scrape public Indian stock fundamentals from Screener.in and Moneycontrol. Enter NSE symbols or BSE codes and get one normalized row per stock with price, market cap, valuation ratios, profitability metrics, 52-week range, sector details, and optional financial statement and shareholding data.
 
-This Actor provides public market data for research and informational use only. It is not financial advice.
+Use it for Indian equity watchlists, portfolio research, data dashboards, spreadsheet enrichment, and scheduled exports. No login or API key is required. This Actor provides market data for research and informational workflows only; it is not financial advice.
 
-Built with Node.js 20, TypeScript, and the Apify SDK using browser-free HTTP scraping. It resolves exact NSE/BSE symbols through Moneycontrol autocomplete, merges both sources into a single record per stock, and adds retries, timeouts, deduplication, and bounded concurrency so runs stay reliable at scale.
-
-## What It Extracts
-
-- `symbol`, `companyName`, `nseCode`, `bseCode`, `isin`
-- `sector` and `industry`
-- `currentPrice` and `currentPriceSource` (moneycontrol or screener)
-- `marketCapCrore`, `peRatio`, `pbRatio`, `dividendYieldPercent`
-- `epsTtm`, `bookValuePerShare`, `faceValue`
-- `roePercent` and `rocePercent`
-- `salesGrowth3YPercent` and `profitGrowth3YPercent`
-- `week52High`, `week52Low`, `previousClose`, `dayChange`, `dayChangePercent`, `volume`
-- `promoterHoldingPercent`, `fiiHoldingPercent`, `diiHoldingPercent`, `publicHoldingPercent`
-- `quarterlyResults` and `annualResults` - arrays of `period`, `revenueCrore`, `netProfitCrore`, `eps`
-- `sourceStatus` - per-source request status (`requested`, `ok`, `url`, `error`)
-- `sourceData` - original Screener.in and Moneycontrol values
-- `scrapedAt` - scrape timestamp
-
-Financial statement values are reported in INR crores. Prices and per-share values are in INR. Percentage fields use percentage points, so `18.5` means 18.5%.
-
-## Use Cases
-
-1. Fundamental stock screening and building Indian equity watchlists.
-2. Portfolio research and valuation comparison across NSE and BSE stocks.
-3. Powering Indian equity dashboards and data pipelines with normalized fields.
-4. Historical quarterly and annual financial analysis with growth metrics.
-5. Promoter, FII, and DII shareholding monitoring over time.
-6. Fintech prototypes and spreadsheet enrichment from real market data.
-
-## Pricing
-
-This Actor uses Apify Pay Per Event pricing. Each successful stock record is saved and charged atomically. Selecting both sources still creates and charges for one merged stock record. Failed symbols are not billed, and workers stop taking new symbols when the user's spending limit is reached.
-
-| Event name | Price per event | 10 stocks | 100 stocks | 1,000 stocks |
-| --- | ---: | ---: | ---: | ---: |
-| `stock-scraped` | $0.002 | $0.02 | $0.20 | $2.00 |
-
-## Input
-
-| Field | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `symbols` | string[] | yes | `RELIANCE, TCS` | NSE symbols or BSE codes |
-| `source` | string | no | `both` | `screener`, `moneycontrol`, or `both` |
-| `consolidated` | boolean | no | `true` | Use consolidated Screener.in statements |
-| `includeFinancials` | boolean | no | `true` | Include four quarters and five annual periods |
-| `includeShareholding` | boolean | no | `true` | Include latest promoter, FII, DII, and public holdings |
-| `maxResults` | integer | no | `10` | Maximum unique stocks, up to 100 |
-| `maxConcurrency` | integer | no | `3` | Parallel stocks, from 1 to 10 |
-| `proxyConfiguration` | object | no | Proxy off | Optional Apify proxy configuration |
-
-### Example input
+## Quick Start
 
 ```json
 {
-  "symbols": ["RELIANCE", "TCS", "INFY", "500180"],
+  "symbols": ["RELIANCE"],
   "source": "both",
   "consolidated": true,
-  "includeFinancials": true,
-  "includeShareholding": true,
-  "maxResults": 10,
-  "maxConcurrency": 3,
+  "includeFinancials": false,
+  "includeShareholding": false,
+  "maxResults": 1,
+  "maxConcurrency": 1,
   "proxyConfiguration": {
     "useApifyProxy": false
   }
 }
 ```
 
-## How to Scrape India Stock Fundamentals (Step by Step)
+This runs one stock through both sources, keeps proxy off, and skips larger statement/shareholding tables so the first run stays fast and low-cost.
 
-1. Click **Try for free** / **Run**.
-2. Enter NSE symbols or BSE codes in `symbols` (for example `RELIANCE`, `TCS`, `INFY`, `500325`).
-3. Choose a `source`: `screener`, `moneycontrol`, or `both` to merge them into one record.
-4. Toggle `includeFinancials` and `includeShareholding`, then set `maxResults` (start small to test).
-5. Run the Actor, then export results as JSON, CSV, Excel, or HTML, or pull them via the Apify API.
+## What It Extracts
 
-## Output dataset
+| Group | Fields |
+| --- | --- |
+| Company identity | `symbol`, `companyName`, `nseCode`, `bseCode`, `isin`, `sector`, `industry` |
+| Price and market data | `currentPrice`, `currentPriceSource`, `previousClose`, `dayChange`, `dayChangePercent`, `volume`, `week52High`, `week52Low` |
+| Valuation | `marketCapCrore`, `peRatio`, `pbRatio`, `dividendYieldPercent`, `epsTtm`, `bookValuePerShare`, `faceValue` |
+| Profitability and growth | `roePercent`, `rocePercent`, `salesGrowth3YPercent`, `profitGrowth3YPercent` |
+| Ownership | `promoterHoldingPercent`, `fiiHoldingPercent`, `diiHoldingPercent`, `publicHoldingPercent` |
+| Statements | `quarterlyResults`, `annualResults` with period, revenue, net profit, and EPS |
+| Traceability | `sourceStatus`, `sourceData`, `scrapedAt` |
 
-The Actor saves one normalized dataset row per stock symbol. The main table highlights
-the most useful fields for quick research — symbol, company, price, day change, market
-cap, valuation ratios, ROE/ROCE, promoter holding, sector, and timestamp — while the
-full JSON record can also include quarterly results, annual results, source status,
-and raw source values when enabled. Export results as JSON, CSV, Excel, or HTML, or
-consume them via the Apify API.
+Financial statement values are in INR crores. Prices and per-share values are in INR. Percentage fields use percentage points, so `18.5` means 18.5%.
 
-### Sample output
+## Input
+
+| Field | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `symbols` | string array | `["RELIANCE"]` | NSE symbols or BSE codes, for example `RELIANCE`, `TCS`, `INFY`, `HDFCBANK`, or `500325`. |
+| `source` | string | `both` | Use `screener`, `moneycontrol`, or `both`. |
+| `consolidated` | boolean | `true` | Use consolidated Screener.in financials when available. |
+| `includeFinancials` | boolean | `false` | Include latest quarterly and annual statement rows from Screener.in. |
+| `includeShareholding` | boolean | `false` | Include promoter, FII, DII, and public holding percentages when available. |
+| `maxResults` | integer | `1` | Maximum unique stocks to process in one run. |
+| `maxConcurrency` | integer | `1` | Number of stocks processed at the same time. Increase carefully for larger lists. |
+| `proxyConfiguration` | object | disabled | Usually not needed for small runs. Enable Apify Proxy only if source blocking appears. |
+
+## Output
+
+The Actor saves one dataset row per stock. The table view highlights the most useful research fields: symbol, company, price, daily change, market cap, valuation ratios, ROE/ROCE, promoter holding, sector, and scrape time. The full JSON record can also include source-level status, source URLs, raw source values, statement arrays, and shareholding data.
+
+## Verified Sample
+
+An existing successful run for `RELIANCE` returned this trimmed row:
 
 ```json
 {
@@ -98,90 +66,71 @@ consume them via the Apify API.
   "bseCode": "500325",
   "isin": "INE002A01018",
   "sector": "Oil & Gas",
-  "industry": "Refineries",
-  "currentPrice": 1267.5,
+  "industry": "Oil Exploration and Production",
+  "currentPrice": 1309.5,
   "currentPriceSource": "moneycontrol",
-  "marketCapCrore": 1715249.28,
-  "peRatio": 39.12,
-  "pbRatio": 3.03,
-  "dividendYieldPercent": 0.4,
-  "epsTtm": 32.4,
-  "bookValuePerShare": 418.6,
-  "faceValue": 10,
-  "roePercent": 8.01,
-  "rocePercent": 8.37,
-  "salesGrowth3YPercent": 12.5,
-  "profitGrowth3YPercent": 9.8,
-  "week52High": 1608.8,
-  "week52Low": 1114.85,
-  "previousClose": 1259.3,
-  "dayChange": 8.2,
-  "dayChangePercent": 0.65,
-  "volume": 8412305,
-  "promoterHoldingPercent": 50,
-  "fiiHoldingPercent": 21.4,
-  "diiHoldingPercent": 17.8,
-  "publicHoldingPercent": 10.8,
-  "quarterlyResults": [
-    {
-      "period": "Mar 2026",
-      "revenueCrore": 264573,
-      "netProfitCrore": 22146,
-      "eps": 16.37
-    }
-  ],
-  "annualResults": [
-    {
-      "period": "Mar 2026",
-      "revenueCrore": 1009000,
-      "netProfitCrore": 81000,
-      "eps": 59.8
-    }
-  ],
+  "marketCapCrore": 1772085.95,
+  "peRatio": 40.42,
+  "pbRatio": 3.13,
+  "dividendYieldPercent": 0.46,
+  "roePercent": 8.91,
+  "rocePercent": 10.3,
+  "salesGrowth3YPercent": 6,
+  "profitGrowth3YPercent": 5,
+  "week52High": 1611.8,
+  "week52Low": 1253.2,
+  "previousClose": 1328.1,
+  "dayChange": -18.6,
+  "dayChangePercent": -1.4005,
+  "volume": 24887034,
   "sourceStatus": {
-    "screener": { "requested": true, "ok": true, "url": "https://www.screener.in/company/RELIANCE/consolidated/", "error": null },
-    "moneycontrol": { "requested": true, "ok": true, "url": "https://www.moneycontrol.com/india/stockpricequote/refineries/relianceindustries/RI", "error": null }
+    "screener": {
+      "requested": true,
+      "ok": true,
+      "url": "https://www.screener.in/company/RELIANCE/consolidated/",
+      "error": null
+    },
+    "moneycontrol": {
+      "requested": true,
+      "ok": true,
+      "url": "https://www.moneycontrol.com/india/stockpricequote/refineries/relianceindustries/RI",
+      "error": null
+    }
   },
-  "scrapedAt": "2026-06-11T10:00:00.000Z"
+  "scrapedAt": "2026-06-21T13:18:12.181Z"
 }
 ```
 
-Original source-specific values remain available under `sourceData`.
+## Pricing
 
-## How It Works
+Active pay-per-event pricing:
 
-1. Validates the input and resolves each symbol to exact NSE/BSE identifiers through Moneycontrol autocomplete data.
-2. Fetches fundamentals from Screener.in and live quote data from Moneycontrol over HTTP, based on the selected `source`.
-3. Normalizes both sources into one record per stock, including optional quarterly/annual results and shareholding.
-4. Deduplicates symbols and records per-source status under `sourceStatus`.
-5. Atomically saves each clean record and charges `stock-scraped`, stopping new work at the spending limit.
+| Event | Price |
+| --- | ---: |
+| `stock-scraped` | `$0.002` per saved stock row |
+| `apify-actor-start` | `$0.00005` per GB at run start |
 
-## Local Development
+Each successful stock row is saved and charged atomically. Selecting both sources still creates one merged dataset row per stock. Failed symbols are not billed, and the Actor stops taking new symbols when the user's spending limit is reached.
 
-```powershell
-npm install
-npm run build
-New-Item -ItemType Directory -Force storage\key_value_stores\default
-Copy-Item input.json storage\key_value_stores\default\INPUT.json
-npm start
-```
+## Common Workflows
 
-The Actor keeps proxy usage disabled by default. Enable it only when source blocking or rate limits require rotation.
+1. Build an Indian equity watchlist from NSE symbols.
+2. Compare market cap, P/E, P/B, ROE, ROCE, and dividend yield across stocks.
+3. Export Moneycontrol quote data and Screener.in fundamentals to CSV or Excel.
+4. Enable `includeFinancials` for quarterly and annual result arrays.
+5. Schedule a small saved task for recurring portfolio snapshots.
 
-## Known Limits
+## Notes and Limits
 
-- Screener.in may expose different standalone and consolidated values; use `consolidated` to choose.
-- Moneycontrol quote values can change during market hours.
-- Source-specific values can differ because of update timing or methodology.
-- `quarterlyResults`, `annualResults`, and shareholding fields are only included when `includeFinancials` / `includeShareholding` are enabled and available.
+- Screener.in and Moneycontrol can differ because of update timing, methodology, or market-hours movement.
+- Moneycontrol quote values can change during the trading day.
+- `includeFinancials` and `includeShareholding` add more fields but can increase runtime.
 - `maxResults` is capped at 100 unique stocks per run.
-- This Actor provides public market data for research and automation, not investment advice.
+- This Actor extracts public market data. It does not provide recommendations, trading signals, or investment advice.
 
 ## Responsible Use
 
-This Actor is intended for lawful collection of publicly available information only. Users are responsible for ensuring their use complies with the source website's terms, robots.txt, applicable privacy laws, including India's DPDP Act, and all local regulations.
-
-Do not use this Actor to collect, store, sell, or misuse personal data without a lawful basis. The Actor author is not responsible for misuse by end users.
+Use this Actor only for lawful collection of publicly available market data. Respect source website terms, robots.txt, data redistribution rules, and any regulations that apply to how you store or use exported financial data.
 
 ## License
 

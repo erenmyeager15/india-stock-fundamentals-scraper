@@ -1,7 +1,7 @@
 {
   "name": "india-stock-fundamentals-scraper",
   "version": "1.0.0",
-  "description": "Apify Actor for Indian stock fundamentals from Screener.in and Moneycontrol",
+  "description": "Apify Actor for public Indian stock fundamentals from Screener.in and Moneycontrol",
   "type": "module",
   "main": "dist/main.js",
   "scripts": {

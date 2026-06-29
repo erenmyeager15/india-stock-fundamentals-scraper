@@ -6,13 +6,13 @@ import type { ActorInput, MoneycontrolData, ScreenerData } from './types.js';
 const DEFAULT_INPUT: Required<Pick<ActorInput,
     'symbols' | 'source' | 'consolidated' | 'includeFinancials' | 'includeShareholding' | 'maxResults' | 'maxConcurrency'
 >> = {
-    symbols: ['RELIANCE', 'TCS'],
+    symbols: ['RELIANCE'],
     source: 'both',
     consolidated: true,
-    includeFinancials: true,
-    includeShareholding: true,
-    maxResults: 10,
-    maxConcurrency: 3,
+    includeFinancials: false,
+    includeShareholding: false,
+    maxResults: 1,
+    maxConcurrency: 1,
 };
 
 function errorMessage(error: unknown): string {

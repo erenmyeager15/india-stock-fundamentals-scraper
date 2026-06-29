@@ -1,16 +1,16 @@
 {
   "title": "India Stock Fundamentals Scraper",
-  "description": "Get Indian stock prices, ratios, financial statements, and shareholding data. No login or API key required.",
+  "description": "Get public Indian stock prices, ratios, financial statements, and shareholding data from Screener.in and Moneycontrol. No login or API key required.",
   "type": "object",
   "schemaVersion": 1,
   "required": ["symbols"],
   "properties": {
     "symbols": {
       "title": "NSE symbols or BSE codes",
-      "description": "Examples: RELIANCE, TCS, INFY, HDFCBANK, or 500325.",
+      "description": "Examples: RELIANCE, TCS, INFY, HDFCBANK, or 500325. Start with one symbol, then scale up.",
       "type": "array",
       "editor": "stringList",
-      "default": ["RELIANCE", "TCS"],
+      "default": ["RELIANCE"],
       "uniqueItems": true,
       "items": { "type": "string" }
     },
@@ -32,25 +32,25 @@
     },
     "includeFinancials": {
       "title": "Include quarterly and annual results",
-      "description": "Adds the latest four quarters and five annual periods from Screener.in.",
+      "description": "Adds the latest four quarters and five annual periods from Screener.in. Keep off for the cheapest first test.",
       "type": "boolean",
-      "default": true,
+      "default": false,
       "editor": "checkbox"
     },
     "includeShareholding": {
       "title": "Include shareholding pattern",
-      "description": "Adds the latest promoter, FII, DII, and public holdings from Screener.in.",
+      "description": "Adds the latest promoter, FII, DII, and public holdings from Screener.in when available.",
       "type": "boolean",
-      "default": true,
+      "default": false,
       "editor": "checkbox"
     },
     "maxResults": {
       "title": "Maximum stocks",
-      "description": "Limits the number of unique symbols processed in one run.",
+      "description": "Limits the number of unique symbols processed in one run. Increase after confirming the first result.",
       "type": "integer",
       "minimum": 1,
       "maximum": 100,
-      "default": 10,
+      "default": 1,
       "editor": "number"
     },
     "maxConcurrency": {
@@ -59,7 +59,7 @@
       "type": "integer",
       "minimum": 1,
       "maximum": 10,
-      "default": 3,
+      "default": 1,
       "editor": "number"
     },
     "proxyConfiguration": {
