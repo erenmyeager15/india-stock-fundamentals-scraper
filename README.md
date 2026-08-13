@@ -1,4 +1,6 @@
-# India Stock Fundamentals Scraper - Screener.in + Moneycontrol
+# India Stock Fundamentals - $2/1k
+
+Public Screener.in and Moneycontrol data in one normalized stock record.
 
 Scrape public Indian stock fundamentals from Screener.in and Moneycontrol. Enter NSE symbols or BSE codes and get one normalized row per stock with price, market cap, valuation ratios, profitability metrics, 52-week range, sector details, and optional financial statement and shareholding data.
 

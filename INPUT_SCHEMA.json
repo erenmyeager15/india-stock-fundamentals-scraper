@@ -64,7 +64,7 @@
     },
     "proxyConfiguration": {
       "title": "Proxy configuration",
-      "description": "Optional proxy settings. Datacenter or no proxy usually works; residential proxy can improve reliability at scale.",
+      "description": "Optional proxy settings. No proxy is the cheapest verified default. Try Apify datacenter proxy only if blocking appears; residential traffic can cost more than the Actor fee.",
       "type": "object",
       "editor": "proxy",
       "default": {

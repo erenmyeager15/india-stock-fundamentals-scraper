@@ -1,8 +1,8 @@
 {
   "actorSpecification": 1,
   "name": "india-stock-fundamentals-scraper",
-  "title": "India Stock Fundamentals: Screener + Moneycontrol",
-  "description": "Scrape public Indian stock fundamentals from Screener.in and Moneycontrol. Get prices, ratios, market cap, ROE, ROCE, optional statements, and shareholding for NSE/BSE symbols.",
+  "title": "India Stock Fundamentals - $2/1k",
+  "description": "Scrape public Indian stock fundamentals from Screener.in and Moneycontrol for $2 per 1,000 stocks. Get prices, ratios, market cap, ROE, ROCE, optional statements, and shareholding with no proxy required by default.",
   "version": "1.0",
   "categories": ["BUSINESS", "DEVELOPER_TOOLS"],
   "categoriesVersion": "1.0.0",
@@ -16,7 +16,7 @@
   },
   "defaultRunOptions": {
     "build": "latest",
-    "memoryMbytes": 512,
+    "memoryMbytes": 256,
     "timeoutSecs": 900
   },
   "pricingInfo": {
