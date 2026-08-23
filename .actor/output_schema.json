@@ -1,13 +1,13 @@
 {
   "actorOutputSchemaVersion": 1,
-  "title": "India Stock Fundamentals Output",
-  "description": "Structured Indian stock fundamentals with symbols, company names, current prices, daily change, market cap, valuation ratios, profitability ratios, promoter holding, sector, and scraped timestamps.",
+  "title": "Moneycontrol + Screener Comparison Output",
+  "description": "Normalized Indian stock records with source availability, side-by-side Moneycontrol and Screener values, percentage differences, discrepancy flags, and agreement scores.",
   "type": "object",
   "properties": {
     "results": {
       "type": "string",
-      "title": "Indian stock fundamentals records",
-      "description": "Clean dataset items containing public stock fundamentals and valuation metrics for Indian listed companies.",
+      "title": "Dual-source stock comparison records",
+      "description": "One normalized dataset item per stock, including source-level values and comparison results when both sources are available.",
       "template": "{{links.apiDefaultDatasetUrl}}/items"
     }
   }

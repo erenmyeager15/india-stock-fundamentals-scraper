@@ -1,9 +1,10 @@
 {
   "actorSpecification": 1,
   "name": "india-stock-fundamentals-scraper",
-  "title": "India Stock Fundamentals - $2/1k",
-  "description": "Scrape public Indian stock fundamentals from Screener.in and Moneycontrol for $2 per 1,000 stocks. Get prices, ratios, market cap, ROE, ROCE, optional statements, and shareholding with no proxy required by default.",
-  "version": "1.0",
+  "title": "Moneycontrol + Screener Stock Data Validator",
+  "description": "Compare Indian stock data from Moneycontrol and Screener.in for $2 per 1,000 stocks. Get side-by-side values, percentage differences, discrepancy flags, agreement scores, normalized metrics, and source traceability.",
+  "version": "1.1",
+  "buildTag": "latest",
   "categories": ["BUSINESS", "DEVELOPER_TOOLS"],
   "categoriesVersion": "1.0.0",
   "input": "../INPUT_SCHEMA.json",
@@ -11,7 +12,7 @@
   "output": "./output_schema.json",
   "dockerfile": "Dockerfile",
   "exampleRunInput": {
-    "body": "{\"symbols\":[\"RELIANCE\"],\"source\":\"both\",\"consolidated\":true,\"includeFinancials\":false,\"includeShareholding\":false,\"maxResults\":1,\"maxConcurrency\":1,\"proxyConfiguration\":{\"useApifyProxy\":false}}",
+    "body": "{\"symbols\":[\"RELIANCE\"],\"source\":\"both\",\"comparisonTolerancePercent\":2,\"requireBothSources\":true,\"consolidated\":true,\"includeFinancials\":false,\"includeShareholding\":false,\"maxResults\":1,\"maxConcurrency\":1,\"proxyConfiguration\":{\"useApifyProxy\":false}}",
     "contentType": "application/json; charset=utf-8"
   },
   "defaultRunOptions": {
@@ -31,7 +32,7 @@
         },
         "stock-scraped": {
           "eventTitle": "Stock scraped",
-          "eventDescription": "One normalized stock record stored in the default dataset.",
+          "eventDescription": "One requested single-source record or Moneycontrol + Screener comparison stored in the default dataset.",
           "eventPriceUsd": 0.002,
           "isPrimaryEvent": true,
           "isOneTimeEvent": false
@@ -46,11 +47,14 @@
       "actorSpecification": 1,
       "views": {
         "stocks": {
-          "title": "Indian stock fundamentals",
+          "title": "Moneycontrol + Screener comparisons",
           "transformation": {
             "fields": [
               "symbol",
               "companyName",
+              "comparisonStatus",
+              "agreementPercent",
+              "discrepancyCount",
               "currentPrice",
               "dayChangePercent",
               "marketCapCrore",
@@ -68,6 +72,9 @@
             "properties": {
               "symbol": { "label": "Symbol", "format": "text" },
               "companyName": { "label": "Company", "format": "text" },
+              "comparisonStatus": { "label": "Comparison", "format": "text" },
+              "agreementPercent": { "label": "Agreement %", "format": "number" },
+              "discrepancyCount": { "label": "Discrepancies", "format": "number" },
               "currentPrice": { "label": "Price (INR)", "format": "number" },
               "dayChangePercent": { "label": "Day change %", "format": "number" },
               "marketCapCrore": { "label": "Market cap (Cr)", "format": "number" },

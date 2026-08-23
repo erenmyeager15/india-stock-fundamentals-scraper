@@ -3,10 +3,12 @@ import { ProxyAgent, fetch } from 'undici';
 import type { ProxyConfiguration } from 'crawlee';
 import type {
     ActorInput,
+    MetricComparison,
     MoneycontrolData,
     PeriodResult,
     ScreenerData,
     SourceState,
+    SourceComparison,
     StockRecord,
 } from './types.js';
 
@@ -300,18 +302,133 @@ function firstNumber(...values: Array<number | null | undefined>): number | null
     return values.find((value): value is number => value !== null && value !== undefined) ?? null;
 }
 
+const COMPARABLE_METRICS = [
+    {
+        name: 'currentPrice',
+        screener: (data: ScreenerData) => data.currentPrice,
+        moneycontrol: (data: MoneycontrolData) => data.currentPrice,
+    },
+    {
+        name: 'marketCapCrore',
+        screener: (data: ScreenerData) => data.marketCapCrore,
+        moneycontrol: (data: MoneycontrolData) => data.marketCapCrore,
+    },
+    {
+        name: 'peRatio',
+        screener: (data: ScreenerData) => data.peRatio,
+        moneycontrol: (data: MoneycontrolData) => data.peRatio,
+    },
+    {
+        name: 'bookValuePerShare',
+        screener: (data: ScreenerData) => data.bookValuePerShare,
+        moneycontrol: (data: MoneycontrolData) => data.bookValuePerShare,
+    },
+    {
+        name: 'dividendYieldPercent',
+        screener: (data: ScreenerData) => data.dividendYieldPercent,
+        moneycontrol: (data: MoneycontrolData) => data.dividendYieldPercent,
+    },
+    {
+        name: 'faceValue',
+        screener: (data: ScreenerData) => data.faceValue,
+        moneycontrol: (data: MoneycontrolData) => data.faceValue,
+    },
+    {
+        name: 'week52High',
+        screener: (data: ScreenerData) => data.week52High,
+        moneycontrol: (data: MoneycontrolData) => data.week52High,
+    },
+    {
+        name: 'week52Low',
+        screener: (data: ScreenerData) => data.week52Low,
+        moneycontrol: (data: MoneycontrolData) => data.week52Low,
+    },
+] as const;
+
+function round(value: number, decimalPlaces = 4): number {
+    const factor = 10 ** decimalPlaces;
+    return Math.round((value + Number.EPSILON) * factor) / factor;
+}
+
+function symmetricDifferencePercent(left: number, right: number): number {
+    if (left === 0 && right === 0) return 0;
+    return (Math.abs(left - right) / ((Math.abs(left) + Math.abs(right)) / 2)) * 100;
+}
+
+export function createSourceComparison(
+    requestedSources: { screener: boolean; moneycontrol: boolean },
+    screener: ScreenerData | null,
+    moneycontrol: MoneycontrolData | null,
+    tolerancePercent: number,
+): SourceComparison {
+    const safeTolerance = Math.max(0, Math.min(100, tolerancePercent));
+    const metrics: Record<string, MetricComparison> = {};
+
+    if (requestedSources.screener && requestedSources.moneycontrol && screener && moneycontrol) {
+        for (const metric of COMPARABLE_METRICS) {
+            const screenerValue = metric.screener(screener);
+            const moneycontrolValue = metric.moneycontrol(moneycontrol);
+            if (screenerValue === null || moneycontrolValue === null) continue;
+
+            const differencePercent = symmetricDifferencePercent(screenerValue, moneycontrolValue);
+            metrics[metric.name] = {
+                screenerValue,
+                moneycontrolValue,
+                absoluteDifference: round(Math.abs(screenerValue - moneycontrolValue)),
+                differencePercent: round(differencePercent),
+                withinTolerance: differencePercent <= safeTolerance,
+            };
+        }
+    }
+
+    const comparedMetricCount = Object.keys(metrics).length;
+    const discrepancies = Object.entries(metrics)
+        .filter(([, comparison]) => !comparison.withinTolerance)
+        .map(([metric]) => metric);
+    const discrepancyCount = discrepancies.length;
+    const matchingMetricCount = comparedMetricCount - discrepancyCount;
+
+    let status: SourceComparison['status'];
+    if (!requestedSources.screener || !requestedSources.moneycontrol) status = 'not-requested';
+    else if (!screener || !moneycontrol) status = 'partial';
+    else if (comparedMetricCount === 0) status = 'no-comparable-values';
+    else status = 'compared';
+
+    return {
+        status,
+        method: 'symmetric-percent-difference',
+        tolerancePercent: safeTolerance,
+        comparedMetricCount,
+        matchingMetricCount,
+        discrepancyCount,
+        agreementPercent: comparedMetricCount > 0
+            ? round((matchingMetricCount / comparedMetricCount) * 100, 2)
+            : null,
+        metrics,
+        discrepancies,
+    };
+}
+
 export function createStockRecord(
     symbol: string,
     requestedSources: { screener: boolean; moneycontrol: boolean },
     screener: ScreenerData | null,
     moneycontrol: MoneycontrolData | null,
     errors: { screener: string | null; moneycontrol: string | null },
+    comparisonTolerancePercent = 2,
 ): StockRecord {
     const priceSource = moneycontrol?.currentPrice !== null && moneycontrol?.currentPrice !== undefined
         ? 'moneycontrol'
         : screener?.currentPrice !== null && screener?.currentPrice !== undefined
           ? 'screener'
           : null;
+
+    const sourceComparison = createSourceComparison(
+        requestedSources,
+        screener,
+        moneycontrol,
+        comparisonTolerancePercent,
+    );
 
     return {
         symbol: moneycontrol?.nseCode ?? symbol,
@@ -346,6 +463,10 @@ export function createStockRecord(
         publicHoldingPercent: screener?.publicHoldingPercent ?? null,
         quarterlyResults: screener?.quarterlyResults ?? [],
         annualResults: screener?.annualResults ?? [],
+        comparisonStatus: sourceComparison.status,
+        agreementPercent: sourceComparison.agreementPercent,
+        discrepancyCount: sourceComparison.discrepancyCount,
+        sourceComparison,
         sourceStatus: {
             screener: sourceState(requestedSources.screener, screener, errors.screener),
             moneycontrol: sourceState(requestedSources.moneycontrol, moneycontrol, errors.moneycontrol),

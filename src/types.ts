@@ -1,8 +1,12 @@
 export type DataSource = 'screener' | 'moneycontrol' | 'both';
 
+export type SourceComparisonStatus = 'compared' | 'partial' | 'not-requested' | 'no-comparable-values';
+
 export interface ActorInput {
     symbols: string[];
     source?: DataSource;
+    comparisonTolerancePercent?: number;
+    requireBothSources?: boolean;
     consolidated?: boolean;
     includeFinancials?: boolean;
     includeShareholding?: boolean;
@@ -77,6 +81,26 @@ export interface SourceState {
     error: string | null;
 }
 
+export interface MetricComparison {
+    screenerValue: number;
+    moneycontrolValue: number;
+    absoluteDifference: number;
+    differencePercent: number;
+    withinTolerance: boolean;
+}
+
+export interface SourceComparison {
+    status: SourceComparisonStatus;
+    method: 'symmetric-percent-difference';
+    tolerancePercent: number;
+    comparedMetricCount: number;
+    matchingMetricCount: number;
+    discrepancyCount: number;
+    agreementPercent: number | null;
+    metrics: Record<string, MetricComparison>;
+    discrepancies: string[];
+}
+
 export interface StockRecord {
     symbol: string;
     companyName: string | null;
@@ -110,6 +134,10 @@ export interface StockRecord {
     publicHoldingPercent: number | null;
     quarterlyResults: PeriodResult[];
     annualResults: PeriodResult[];
+    comparisonStatus: SourceComparisonStatus;
+    agreementPercent: number | null;
+    discrepancyCount: number;
+    sourceComparison: SourceComparison;
     sourceStatus: {
         screener: SourceState;
         moneycontrol: SourceState;

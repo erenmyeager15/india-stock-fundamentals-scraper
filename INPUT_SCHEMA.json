@@ -1,6 +1,6 @@
 {
-  "title": "India Stock Fundamentals Scraper",
-  "description": "Get public Indian stock prices, ratios, financial statements, and shareholding data from Screener.in and Moneycontrol. No login or API key required.",
+  "title": "Moneycontrol + Screener Stock Data Validator",
+  "description": "Compare public Indian stock data from Moneycontrol and Screener.in. Get both source values, percentage differences, discrepancy flags, and a normalized record without an API key.",
   "type": "object",
   "schemaVersion": 1,
   "required": ["symbols"],
@@ -15,13 +15,29 @@
       "items": { "type": "string" }
     },
     "source": {
-      "title": "Data source",
-      "description": "Use Screener.in, Moneycontrol, or merge both into one record per stock.",
+      "title": "Comparison mode",
+      "description": "Compare both sources for validation, or use one source as a fallback.",
       "type": "string",
       "editor": "select",
       "enum": ["both", "screener", "moneycontrol"],
-      "enumTitles": ["Both sources", "Screener.in only", "Moneycontrol only"],
+      "enumTitles": ["Compare both sources (recommended)", "Screener.in only", "Moneycontrol only"],
       "default": "both"
+    },
+    "comparisonTolerancePercent": {
+      "title": "Allowed difference (%)",
+      "description": "A shared metric is marked as matching when its symmetric percentage difference is at or below this tolerance.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 2,
+      "editor": "number"
+    },
+    "requireBothSources": {
+      "title": "Only save complete comparisons",
+      "description": "When enabled, skip a stock unless both Moneycontrol and Screener.in return usable data. Available only in the recommended comparison mode.",
+      "type": "boolean",
+      "default": false,
+      "editor": "checkbox"
     },
     "consolidated": {
       "title": "Use consolidated financials",
@@ -32,7 +48,7 @@
     },
     "includeFinancials": {
       "title": "Include quarterly and annual results",
-      "description": "Adds the latest four quarters and five annual periods from Screener.in. Keep off for the cheapest first test.",
+      "description": "Adds the latest four quarters and five annual periods from Screener.in. This is optional supporting context, not the Actor's primary comparison output.",
       "type": "boolean",
       "default": false,
       "editor": "checkbox"

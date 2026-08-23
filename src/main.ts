@@ -4,10 +4,20 @@ import { createStockRecord, scrapeMoneycontrol, scrapeScreener } from './routes.
 import type { ActorInput, MoneycontrolData, ScreenerData } from './types.js';
 
 const DEFAULT_INPUT: Required<Pick<ActorInput,
-    'symbols' | 'source' | 'consolidated' | 'includeFinancials' | 'includeShareholding' | 'maxResults' | 'maxConcurrency'
+    | 'symbols'
+    | 'source'
+    | 'comparisonTolerancePercent'
+    | 'requireBothSources'
+    | 'consolidated'
+    | 'includeFinancials'
+    | 'includeShareholding'
+    | 'maxResults'
+    | 'maxConcurrency'
 >> = {
     symbols: ['RELIANCE'],
     source: 'both',
+    comparisonTolerancePercent: 2,
+    requireBothSources: false,
     consolidated: true,
     includeFinancials: false,
     includeShareholding: false,
@@ -44,6 +54,9 @@ try {
         .slice(0, input.maxResults);
 
     if (symbols.length === 0) throw new Error('Provide at least one NSE symbol or BSE code in symbols.');
+    if (input.requireBothSources && input.source !== 'both') {
+        throw new Error('requireBothSources can only be enabled when source is set to both.');
+    }
 
     const proxyConfiguration = suppliedInput.proxyConfiguration
         ? await Actor.createProxyConfiguration(suppliedInput.proxyConfiguration)
@@ -89,12 +102,19 @@ try {
             return;
         }
 
+        if (input.requireBothSources && (!screener || !moneycontrol)) {
+            failed++;
+            log.warning(`Skipped ${symbol} because a complete two-source comparison was required.`, errors);
+            return;
+        }
+
         const record = createStockRecord(
             symbol,
             { screener: wantsScreener, moneycontrol: wantsMoneycontrol },
             screener,
             moneycontrol,
             errors,
+            input.comparisonTolerancePercent,
         );
         const chargeResult = await Actor.pushData(record, 'stock-scraped');
         const recordWasSaved = chargeResult.chargedCount > 0 || !chargeResult.eventChargeLimitReached;
@@ -108,7 +128,10 @@ try {
             return;
         }
 
-        log.info(`Stored ${record.symbol}: ${record.companyName ?? 'company name unavailable'}.`);
+        const comparisonSummary = record.agreementPercent === null
+            ? record.comparisonStatus
+            : `${record.agreementPercent}% agreement across ${record.sourceComparison.comparedMetricCount} metrics`;
+        log.info(`Stored ${record.symbol}: ${record.companyName ?? 'company name unavailable'} (${comparisonSummary}).`);
     }, () => spendingLimitReached);
 
     if (!spendingLimitReached) {

@@ -1,10 +1,26 @@
-# India Stock Fundamentals - $2/1k
+# Moneycontrol + Screener Stock Data Validator
 
-Public Screener.in and Moneycontrol data in one normalized stock record.
+Compare two public Indian stock sources in one clean record for **$2 per 1,000 saved stocks**.
 
-Scrape public Indian stock fundamentals from Screener.in and Moneycontrol. Enter NSE symbols or BSE codes and get one normalized row per stock with price, market cap, valuation ratios, profitability metrics, 52-week range, sector details, and optional financial statement and shareholding data.
+Moneycontrol and Screener.in can show different prices, market caps, valuation ratios, or 52-week ranges because their update timing and calculation methods differ. This Actor collects both, keeps the original source values, and shows exactly where they agree or differ.
 
-Use it for Indian equity watchlists, portfolio research, data dashboards, spreadsheet enrichment, and scheduled exports. No login or API key is required. This Actor provides market data for research and informational workflows only; it is not financial advice.
+Use it for data-quality checks, spreadsheet validation, portfolio dashboards, source monitoring, and research pipelines that should not silently trust a single website. No login or API key is required.
+
+## What Makes This Actor Different
+
+For every stock, the Actor can return:
+
+- one normalized record for easy export;
+- source-level status, URLs, errors, and raw values;
+- side-by-side Moneycontrol and Screener values for shared metrics;
+- absolute and percentage differences per metric;
+- configurable discrepancy tolerance;
+- an agreement percentage and discrepancy list;
+- optional Screener financial summaries and shareholding data.
+
+This is a **source-comparison tool**, not another long-history market-data Actor.
+
+Need live NSE/BSE index data, market statistics, peers, 13 quarters, and up to 12 annual years? Use [Indian Stocks: NSE/BSE Data & Financials](https://apify.com/fascinating_lentil/nse-bse-scraper).
 
 ## Quick Start
 
@@ -12,6 +28,8 @@ Use it for Indian equity watchlists, portfolio research, data dashboards, spread
 {
   "symbols": ["RELIANCE"],
   "source": "both",
+  "comparisonTolerancePercent": 2,
+  "requireBothSources": true,
   "consolidated": true,
   "includeFinancials": false,
   "includeShareholding": false,
@@ -23,68 +41,40 @@ Use it for Indian equity watchlists, portfolio research, data dashboards, spread
 }
 ```
 
-This runs one stock through both sources, keeps proxy off, and skips larger statement/shareholding tables so the first run stays fast and low-cost.
+This compares one company across both sources. It saves the record only when both sources respond and marks a shared metric as matching when the difference is 2% or less.
 
-## What It Extracts
+## Comparison Output
 
-| Group | Fields |
-| --- | --- |
-| Company identity | `symbol`, `companyName`, `nseCode`, `bseCode`, `isin`, `sector`, `industry` |
-| Price and market data | `currentPrice`, `currentPriceSource`, `previousClose`, `dayChange`, `dayChangePercent`, `volume`, `week52High`, `week52Low` |
-| Valuation | `marketCapCrore`, `peRatio`, `pbRatio`, `dividendYieldPercent`, `epsTtm`, `bookValuePerShare`, `faceValue` |
-| Profitability and growth | `roePercent`, `rocePercent`, `salesGrowth3YPercent`, `profitGrowth3YPercent` |
-| Ownership | `promoterHoldingPercent`, `fiiHoldingPercent`, `diiHoldingPercent`, `publicHoldingPercent` |
-| Statements | `quarterlyResults`, `annualResults` with period, revenue, net profit, and EPS |
-| Traceability | `sourceStatus`, `sourceData`, `scrapedAt` |
-
-Financial statement values are in INR crores. Prices and per-share values are in INR. Percentage fields use percentage points, so `18.5` means 18.5%.
-
-## Input
-
-| Field | Type | Default | Notes |
-| --- | --- | --- | --- |
-| `symbols` | string array | `["RELIANCE"]` | NSE symbols or BSE codes, for example `RELIANCE`, `TCS`, `INFY`, `HDFCBANK`, or `500325`. |
-| `source` | string | `both` | Use `screener`, `moneycontrol`, or `both`. |
-| `consolidated` | boolean | `true` | Use consolidated Screener.in financials when available. |
-| `includeFinancials` | boolean | `false` | Include latest quarterly and annual statement rows from Screener.in. |
-| `includeShareholding` | boolean | `false` | Include promoter, FII, DII, and public holding percentages when available. |
-| `maxResults` | integer | `1` | Maximum unique stocks to process in one run. |
-| `maxConcurrency` | integer | `1` | Number of stocks processed at the same time. Increase carefully for larger lists. |
-| `proxyConfiguration` | object | disabled | Usually not needed for small runs. Enable Apify Proxy only if source blocking appears. |
-
-## Output
-
-The Actor saves one dataset row per stock. The table view highlights the most useful research fields: symbol, company, price, daily change, market cap, valuation ratios, ROE/ROCE, promoter holding, sector, and scrape time. The full JSON record can also include source-level status, source URLs, raw source values, statement arrays, and shareholding data.
-
-## Verified Sample
-
-An existing successful run for `RELIANCE` returned this trimmed row:
+Each saved item contains top-level fields for filtering plus the full comparison object:
 
 ```json
 {
   "symbol": "RELIANCE",
   "companyName": "Reliance Industries",
-  "nseCode": "RELIANCE",
-  "bseCode": "500325",
-  "isin": "INE002A01018",
-  "sector": "Oil & Gas",
-  "industry": "Oil Exploration and Production",
-  "currentPrice": 1309.5,
+  "comparisonStatus": "compared",
+  "agreementPercent": 75,
+  "discrepancyCount": 2,
+  "currentPrice": 1500,
   "currentPriceSource": "moneycontrol",
-  "marketCapCrore": 1772085.95,
-  "peRatio": 40.42,
-  "pbRatio": 3.13,
-  "dividendYieldPercent": 0.46,
-  "roePercent": 8.91,
-  "rocePercent": 10.3,
-  "salesGrowth3YPercent": 6,
-  "profitGrowth3YPercent": 5,
-  "week52High": 1611.8,
-  "week52Low": 1253.2,
-  "previousClose": 1328.1,
-  "dayChange": -18.6,
-  "dayChangePercent": -1.4005,
-  "volume": 24887034,
+  "sourceComparison": {
+    "status": "compared",
+    "method": "symmetric-percent-difference",
+    "tolerancePercent": 2,
+    "comparedMetricCount": 8,
+    "matchingMetricCount": 6,
+    "discrepancyCount": 2,
+    "agreementPercent": 75,
+    "metrics": {
+      "currentPrice": {
+        "screenerValue": 1498,
+        "moneycontrolValue": 1500,
+        "absoluteDifference": 2,
+        "differencePercent": 0.1334,
+        "withinTolerance": true
+      }
+    },
+    "discrepancies": ["marketCapCrore", "peRatio"]
+  },
   "sourceStatus": {
     "screener": {
       "requested": true,
@@ -95,44 +85,89 @@ An existing successful run for `RELIANCE` returned this trimmed row:
     "moneycontrol": {
       "requested": true,
       "ok": true,
-      "url": "https://www.moneycontrol.com/india/stockpricequote/refineries/relianceindustries/RI",
+      "url": "https://www.moneycontrol.com/...",
       "error": null
     }
-  },
-  "scrapedAt": "2026-06-21T13:18:12.181Z"
+  }
 }
 ```
 
-## Pricing
+The numbers above illustrate the output structure; live values change with the sources.
 
-Active pay-per-event pricing:
+## Metrics Compared
+
+When both sources provide them, the Actor compares:
+
+- current price;
+- market capitalization;
+- P/E ratio;
+- book value per share;
+- dividend yield;
+- face value;
+- 52-week high;
+- 52-week low.
+
+The percentage difference is symmetric: neither source is treated as the unquestioned baseline. A 2% tolerance means a difference of 2% or less is counted as an agreement.
+
+## Other Data Returned
+
+| Group | Fields |
+| --- | --- |
+| Identity | `symbol`, `companyName`, `nseCode`, `bseCode`, `isin`, `sector`, `industry` |
+| Market data | `currentPrice`, `previousClose`, `dayChange`, `dayChangePercent`, `volume`, `week52High`, `week52Low` |
+| Valuation | `marketCapCrore`, `peRatio`, `pbRatio`, `dividendYieldPercent`, `epsTtm`, `bookValuePerShare`, `faceValue` |
+| Profitability | `roePercent`, `rocePercent`, `salesGrowth3YPercent`, `profitGrowth3YPercent` |
+| Ownership | `promoterHoldingPercent`, `fiiHoldingPercent`, `diiHoldingPercent`, `publicHoldingPercent` |
+| Optional summaries | `quarterlyResults`, `annualResults` |
+| Traceability | `sourceStatus`, `sourceData`, `scrapedAt` |
+
+Financial statement values are in INR crores. Price and per-share values are in INR. Percentage fields use percentage points, so `18.5` means 18.5%.
+
+## Input
+
+| Field | Default | Purpose |
+| --- | --- | --- |
+| `symbols` | `["RELIANCE"]` | NSE symbols or BSE codes such as `TCS`, `INFY`, or `500325`. |
+| `source` | `both` | Compare both sources, or request one source as a fallback. |
+| `comparisonTolerancePercent` | `2` | Maximum symmetric percentage difference counted as a match. |
+| `requireBothSources` | `false` | Skip incomplete comparisons when enabled. Requires `source: "both"`. |
+| `consolidated` | `true` | Request consolidated Screener.in data when available. |
+| `includeFinancials` | `false` | Add the latest four quarters and five annual summary periods. |
+| `includeShareholding` | `false` | Add latest promoter, FII, DII, and public holdings. |
+| `maxResults` | `1` | Maximum unique symbols, up to 100 per run. |
+| `maxConcurrency` | `1` | Parallel stocks, up to 10. Keep modest to reduce source blocking. |
+| `proxyConfiguration` | disabled | Optional. Small verified runs normally do not require a proxy. |
+
+## Comparison Statuses
+
+- `compared`: both sources returned data and at least one shared metric was compared.
+- `partial`: both were requested, but only one source returned usable data.
+- `not-requested`: the run intentionally requested only one source.
+- `no-comparable-values`: both sources responded but shared numeric values were unavailable.
+
+Enable `requireBothSources` when partial rows would be unsuitable for your workflow.
+
+## Pricing
 
 | Event | Price |
 | --- | ---: |
-| `stock-scraped` | `$0.002` per saved stock row |
+| `stock-scraped` | `$0.002` per saved stock record |
 | `apify-actor-start` | `$0.00005` per GB at run start |
 
-Each successful stock row is saved and charged atomically. Selecting both sources still creates one merged dataset row per stock. Failed symbols are not billed, and the Actor stops taking new symbols when the user's spending limit is reached.
+Selecting both sources still creates and charges only one dataset item per stock. Stocks that return no usable data are not billed. The Actor also respects the user's maximum run charge.
 
-## Common Workflows
+## Limits and Interpretation
 
-1. Build an Indian equity watchlist from NSE symbols.
-2. Compare market cap, P/E, P/B, ROE, ROCE, and dividend yield across stocks.
-3. Export Moneycontrol quote data and Screener.in fundamentals to CSV or Excel.
-4. Enable `includeFinancials` for quarterly and annual result arrays.
-5. Schedule a small saved task for recurring portfolio snapshots.
-
-## Notes and Limits
-
-- Screener.in and Moneycontrol can differ because of update timing, methodology, or market-hours movement.
-- Moneycontrol quote values can change during the trading day.
-- `includeFinancials` and `includeShareholding` add more fields but can increase runtime.
-- `maxResults` is capped at 100 unique stocks per run.
-- This Actor extracts public market data. It does not provide recommendations, trading signals, or investment advice.
+- A match means the values fall within your selected tolerance; it does not prove either source is correct.
+- Differences can be legitimate because of market movement, reporting periods, rounding, or source methodology.
+- Moneycontrol values may change during market hours.
+- Optional statement and shareholding fields come from Screener.in and are supporting context, not dual-source comparisons.
+- Source websites can change their public pages or rate limits.
+- This Actor provides data for research and quality-control workflows, not investment advice or trading signals.
 
 ## Responsible Use
 
-Use this Actor only for lawful collection of publicly available market data. Respect source website terms, robots.txt, data redistribution rules, and any regulations that apply to how you store or use exported financial data.
+Use the Actor only for lawful collection of public data. Respect source terms, robots.txt, data-redistribution restrictions, and regulations that apply to your use.
 
 ## License
 

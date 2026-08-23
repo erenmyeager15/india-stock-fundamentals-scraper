@@ -1,6 +1,10 @@
 {
-  "symbols": ["RELIANCE"],
+  "symbols": [
+    "RELIANCE"
+  ],
   "source": "both",
+  "comparisonTolerancePercent": 2,
+  "requireBothSources": true,
   "consolidated": true,
   "includeFinancials": false,
   "includeShareholding": false,
