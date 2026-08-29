@@ -1,56 +1,83 @@
 {
   "title": "Moneycontrol + Screener Stock Data Validator",
-  "description": "Compare public Indian stock data from Moneycontrol and Screener.in. Get both source values, percentage differences, discrepancy flags, and a normalized record without an API key.",
+  "description": "Run the prefilled Reliance comparison to validate public Indian stock data across Moneycontrol and Screener.in. Get both source values, differences, agreement scores, and one normalized record without an API key.",
   "type": "object",
   "schemaVersion": 1,
   "required": ["symbols"],
   "properties": {
     "symbols": {
       "title": "NSE symbols or BSE codes",
-      "description": "Examples: RELIANCE, TCS, INFY, HDFCBANK, or 500325. Start with one symbol, then scale up.",
+      "description": "Ready to run with RELIANCE. Add symbols such as TCS, INFY, HDFCBANK, or a BSE code such as 500325.",
       "type": "array",
       "editor": "stringList",
-      "default": ["RELIANCE"],
+      "items": { "type": "string" },
+      "minItems": 1,
+      "maxItems": 100,
       "uniqueItems": true,
-      "items": { "type": "string" }
+      "default": ["RELIANCE"],
+      "prefill": ["RELIANCE"],
+      "example": ["RELIANCE", "TCS", "INFY"],
+      "sectionCaption": "Quick start",
+      "sectionDescription": "Ready to run as-is: compare one Reliance stock record across Moneycontrol and Screener.in."
+    },
+    "maxResults": {
+      "title": "Maximum stocks",
+      "description": "Start with 1 to verify the comparison and cost. Increase only when you are ready to process more symbols.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 1,
+      "prefill": 1,
+      "editor": "number",
+      "unit": "stocks"
     },
     "source": {
-      "title": "Comparison mode",
-      "description": "Compare both sources for validation, or use one source as a fallback.",
+      "title": "Data sources",
+      "description": "Compare both sources for validation, or use one source when you only need its published values.",
       "type": "string",
       "editor": "select",
       "enum": ["both", "screener", "moneycontrol"],
-      "enumTitles": ["Compare both sources (recommended)", "Screener.in only", "Moneycontrol only"],
-      "default": "both"
+      "enumTitles": ["Compare Moneycontrol + Screener.in", "Screener.in only", "Moneycontrol only"],
+      "default": "both",
+      "prefill": "both",
+      "sectionCaption": "Comparison rules",
+      "sectionDescription": "The recommended setup saves source values, metric differences, discrepancy flags, and an overall agreement score."
+    },
+    "requireBothSources": {
+      "title": "Only save complete comparisons",
+      "description": "Keep enabled for validation work. The stock is saved only when both Moneycontrol and Screener.in return usable data.",
+      "type": "boolean",
+      "default": false,
+      "prefill": true,
+      "editor": "checkbox"
     },
     "comparisonTolerancePercent": {
       "title": "Allowed difference (%)",
-      "description": "A shared metric is marked as matching when its symmetric percentage difference is at or below this tolerance.",
+      "description": "A shared metric counts as matching when its symmetric percentage difference is at or below this tolerance.",
       "type": "number",
       "minimum": 0,
       "maximum": 100,
       "default": 2,
-      "editor": "number"
-    },
-    "requireBothSources": {
-      "title": "Only save complete comparisons",
-      "description": "When enabled, skip a stock unless both Moneycontrol and Screener.in return usable data. Available only in the recommended comparison mode.",
-      "type": "boolean",
-      "default": false,
-      "editor": "checkbox"
+      "prefill": 2,
+      "editor": "number",
+      "unit": "%"
     },
     "consolidated": {
       "title": "Use consolidated financials",
-      "description": "Use consolidated Screener.in results when available.",
+      "description": "Use consolidated Screener.in values when available.",
       "type": "boolean",
       "default": true,
-      "editor": "checkbox"
+      "prefill": true,
+      "editor": "checkbox",
+      "sectionCaption": "Optional Screener.in enrichment",
+      "sectionDescription": "The core comparison is fast. Enable additional statements or ownership data only when your workflow needs them."
     },
     "includeFinancials": {
       "title": "Include quarterly and annual results",
-      "description": "Adds the latest four quarters and five annual periods from Screener.in. This is optional supporting context, not the Actor's primary comparison output.",
+      "description": "Adds the latest four quarters and five annual summary periods from Screener.in.",
       "type": "boolean",
       "default": false,
+      "prefill": false,
       "editor": "checkbox"
     },
     "includeShareholding": {
@@ -58,34 +85,34 @@
       "description": "Adds the latest promoter, FII, DII, and public holdings from Screener.in when available.",
       "type": "boolean",
       "default": false,
+      "prefill": false,
       "editor": "checkbox"
     },
-    "maxResults": {
-      "title": "Maximum stocks",
-      "description": "Limits the number of unique symbols processed in one run. Increase after confirming the first result.",
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 100,
-      "default": 1,
-      "editor": "number"
-    },
     "maxConcurrency": {
-      "title": "Concurrency",
-      "description": "Number of stocks processed at the same time. Keep this modest to avoid rate limits.",
+      "title": "Concurrent stocks",
+      "description": "Keep 1 for the sample. Use modest concurrency for larger runs to reduce source rate limiting.",
       "type": "integer",
       "minimum": 1,
       "maximum": 10,
       "default": 1,
-      "editor": "number"
+      "prefill": 1,
+      "editor": "number",
+      "sectionCaption": "Run controls",
+      "sectionDescription": "Increase concurrency only after a successful one-stock comparison."
     },
     "proxyConfiguration": {
       "title": "Proxy configuration",
-      "description": "Optional proxy settings. No proxy is the cheapest verified default. Try Apify datacenter proxy only if blocking appears; residential traffic can cost more than the Actor fee.",
+      "description": "Direct requests are the cheapest verified default. Try Apify datacenter proxy only if either source begins blocking; residential traffic can cost more than the Actor fee.",
       "type": "object",
       "editor": "proxy",
       "default": {
         "useApifyProxy": false
-      }
+      },
+      "prefill": {
+        "useApifyProxy": false
+      },
+      "sectionCaption": "Proxy settings",
+      "sectionDescription": "No proxy is required for the verified Reliance quick start."
     }
   }
 }

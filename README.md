@@ -24,6 +24,8 @@ Need live NSE/BSE index data, market statistics, peers, 13 quarters, and up to 1
 
 ## Quick Start
 
+The input form is ready to run without editing: it compares one Reliance record across Moneycontrol and Screener.in with a 2% tolerance, requires both sources for the sample, and uses no proxy. Inspect the agreement score and per-metric differences, then add more symbols or optional Screener.in enrichment.
+
 ```json
 {
   "symbols": ["RELIANCE"],
@@ -130,7 +132,7 @@ Financial statement values are in INR crores. Price and per-share values are in 
 | `symbols` | `["RELIANCE"]` | NSE symbols or BSE codes such as `TCS`, `INFY`, or `500325`. |
 | `source` | `both` | Compare both sources, or request one source as a fallback. |
 | `comparisonTolerancePercent` | `2` | Maximum symmetric percentage difference counted as a match. |
-| `requireBothSources` | `false` | Skip incomplete comparisons when enabled. Requires `source: "both"`. |
+| `requireBothSources` | `false` (prefilled `true`) | Skip incomplete comparisons when enabled. The quick-start form enables it for a complete two-source example. |
 | `consolidated` | `true` | Request consolidated Screener.in data when available. |
 | `includeFinancials` | `false` | Add the latest four quarters and five annual summary periods. |
 | `includeShareholding` | `false` | Add latest promoter, FII, DII, and public holdings. |
