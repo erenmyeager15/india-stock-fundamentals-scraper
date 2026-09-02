@@ -4,6 +4,8 @@ import { createSourceComparison, createStockRecord } from '../dist/routes.js';
 
 const screener = {
     url: 'https://www.screener.in/company/TEST/consolidated/',
+    fetchedAt: '2026-08-23T00:00:01.000Z',
+    latestAnnualPeriod: 'Mar 2026',
     companyName: 'Test Industries',
     currentPrice: 100,
     marketCapCrore: 1000,
@@ -27,6 +29,7 @@ const screener = {
 
 const moneycontrol = {
     url: 'https://www.moneycontrol.com/test',
+    fetchedAt: '2026-08-23T00:00:02.000Z',
     companyName: 'Test Industries',
     nseCode: 'TEST',
     bseCode: '500000',
@@ -65,6 +68,20 @@ assert.equal(compared.agreementPercent, 66.67);
 assert.deepEqual(compared.discrepancies, ['marketCapCrore']);
 assert.equal(compared.metrics.currentPrice.withinTolerance, true);
 assert.equal(compared.metrics.marketCapCrore.withinTolerance, false);
+assert.equal(compared.metrics.currentPrice.screenerObservedAt, screener.fetchedAt);
+assert.equal(compared.metrics.currentPrice.moneycontrolObservedAt, moneycontrol.fetchedAt);
+assert.equal(compared.unitMismatchCount, 0);
+assert.deepEqual(compared.validationFlags, ['marketCapCrore:difference-above-tolerance']);
+
+const unitMismatch = createSourceComparison(
+    { screener: true, moneycontrol: true },
+    { ...screener, marketCapCrore: 1000 },
+    { ...moneycontrol, marketCapCrore: 100000 },
+    2,
+);
+assert.equal(unitMismatch.metrics.marketCapCrore.unitMismatchType, 'possible-lakh-vs-crore');
+assert.deepEqual(unitMismatch.unitMismatchMetrics, ['marketCapCrore']);
+assert.ok(unitMismatch.validationFlags.includes('marketCapCrore:possible-lakh-vs-crore'));
 
 const partial = createSourceComparison(
     { screener: true, moneycontrol: true },
@@ -95,6 +112,14 @@ assert.equal(record.comparisonStatus, 'compared');
 assert.equal(record.agreementPercent, compared.agreementPercent);
 assert.equal(record.discrepancyCount, compared.discrepancyCount);
 assert.equal(record.currentPriceSource, 'moneycontrol');
+assert.deepEqual(record.sourceObservedAt, {
+    screener: screener.fetchedAt,
+    moneycontrol: moneycontrol.fetchedAt,
+    moneycontrolReportedAt: moneycontrol.lastUpdated,
+});
+assert.equal(record.fiscalPeriodAlignmentStatus, 'not-compared');
+assert.equal(record.periodAlignment.screenerLatestAnnualPeriod, 'Mar 2026');
+assert.match(record.periodAlignment.warning, /does not expose a fiscal period/);
 
 const inputSchema = JSON.parse(await readFile(new URL('../INPUT_SCHEMA.json', import.meta.url), 'utf8'));
 assert.equal(inputSchema.properties.source.default, 'both');

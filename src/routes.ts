@@ -5,6 +5,7 @@ import type {
     ActorInput,
     MetricComparison,
     MoneycontrolData,
+    PeriodAlignment,
     PeriodResult,
     ScreenerData,
     SourceState,
@@ -173,6 +174,15 @@ function getFinancialResults($: CheerioAPI, sectionSelector: string, limit: numb
     }));
 }
 
+function getLatestAnnualPeriod($: CheerioAPI): string | null {
+    const periods = $('#profit-loss [data-result-table] table thead th')
+        .slice(1)
+        .map((_index, element) => cleanText($(element).text()))
+        .get()
+        .filter((period) => /^[A-Z][a-z]{2}\s+\d{4}$/.test(period));
+    return periods.at(-1) ?? null;
+}
+
 export function parseScreenerHtml(
     html: string,
     url: string,
@@ -184,6 +194,8 @@ export function parseScreenerHtml(
 
     return {
         url,
+        fetchedAt: new Date().toISOString(),
+        latestAnnualPeriod: getLatestAnnualPeriod($),
         companyName: cleanText($('h1').first().text()) || null,
         currentPrice: top.get('current price')?.[0] ?? null,
         marketCapCrore: top.get('market cap')?.[0] ?? null,
@@ -251,6 +263,7 @@ export function parseMoneycontrolQuote(
     const data = response.data;
     return {
         url: suggestion.link_src ?? '',
+        fetchedAt: new Date().toISOString(),
         companyName: stringValue(data, 'SC_FULLNM') ?? suggestion.name ?? null,
         nseCode: stringValue(data, 'NSEID'),
         bseCode: stringValue(data, 'BSEID'),
@@ -355,6 +368,12 @@ function symmetricDifferencePercent(left: number, right: number): number {
     return (Math.abs(left - right) / ((Math.abs(left) + Math.abs(right)) / 2)) * 100;
 }
 
+function possibleLakhCroreMismatch(metric: string, left: number, right: number): boolean {
+    if (metric !== 'marketCapCrore' || left === 0 || right === 0) return false;
+    const ratio = Math.max(Math.abs(left), Math.abs(right)) / Math.min(Math.abs(left), Math.abs(right));
+    return ratio >= 90 && ratio <= 110;
+}
+
 export function createSourceComparison(
     requestedSources: { screener: boolean; moneycontrol: boolean },
     screener: ScreenerData | null,
@@ -371,12 +390,18 @@ export function createSourceComparison(
             if (screenerValue === null || moneycontrolValue === null) continue;
 
             const differencePercent = symmetricDifferencePercent(screenerValue, moneycontrolValue);
+            const unitMismatchType = possibleLakhCroreMismatch(metric.name, screenerValue, moneycontrolValue)
+                ? 'possible-lakh-vs-crore'
+                : null;
             metrics[metric.name] = {
                 screenerValue,
                 moneycontrolValue,
                 absoluteDifference: round(Math.abs(screenerValue - moneycontrolValue)),
                 differencePercent: round(differencePercent),
                 withinTolerance: differencePercent <= safeTolerance,
+                screenerObservedAt: screener.fetchedAt,
+                moneycontrolObservedAt: moneycontrol.fetchedAt,
+                unitMismatchType,
             };
         }
     }
@@ -387,6 +412,13 @@ export function createSourceComparison(
         .map(([metric]) => metric);
     const discrepancyCount = discrepancies.length;
     const matchingMetricCount = comparedMetricCount - discrepancyCount;
+    const unitMismatchMetrics = Object.entries(metrics)
+        .filter(([, comparison]) => comparison.unitMismatchType !== null)
+        .map(([metric]) => metric);
+    const validationFlags = [
+        ...discrepancies.map((metric) => `${metric}:difference-above-tolerance`),
+        ...unitMismatchMetrics.map((metric) => `${metric}:possible-lakh-vs-crore`),
+    ];
 
     let status: SourceComparison['status'];
     if (!requestedSources.screener || !requestedSources.moneycontrol) status = 'not-requested';
@@ -406,6 +438,37 @@ export function createSourceComparison(
             : null,
         metrics,
         discrepancies,
+        unitMismatchCount: unitMismatchMetrics.length,
+        unitMismatchMetrics,
+        validationFlags,
+    };
+}
+
+function createPeriodAlignment(screener: ScreenerData | null, moneycontrol: MoneycontrolData | null): PeriodAlignment {
+    if (screener && moneycontrol) {
+        return {
+            status: 'not-compared',
+            screenerLatestAnnualPeriod: screener.latestAnnualPeriod,
+            moneycontrolLatestAnnualPeriod: null,
+            aligned: null,
+            warning: 'Moneycontrol quote data does not expose a fiscal period. Period-dependent metrics such as ROE and ROCE are not compared across sources.',
+        };
+    }
+    if (screener || moneycontrol) {
+        return {
+            status: 'single-source',
+            screenerLatestAnnualPeriod: screener?.latestAnnualPeriod ?? null,
+            moneycontrolLatestAnnualPeriod: null,
+            aligned: null,
+            warning: 'Fiscal-period alignment requires comparable period data from both sources.',
+        };
+    }
+    return {
+        status: 'unavailable',
+        screenerLatestAnnualPeriod: null,
+        moneycontrolLatestAnnualPeriod: null,
+        aligned: null,
+        warning: 'No source data was available for fiscal-period alignment.',
     };
 }
 
@@ -429,6 +492,7 @@ export function createStockRecord(
         moneycontrol,
         comparisonTolerancePercent,
     );
+    const periodAlignment = createPeriodAlignment(screener, moneycontrol);
 
     return {
         symbol: moneycontrol?.nseCode ?? symbol,
@@ -466,6 +530,15 @@ export function createStockRecord(
         comparisonStatus: sourceComparison.status,
         agreementPercent: sourceComparison.agreementPercent,
         discrepancyCount: sourceComparison.discrepancyCount,
+        unitMismatchCount: sourceComparison.unitMismatchCount,
+        validationFlags: sourceComparison.validationFlags,
+        fiscalPeriodAlignmentStatus: periodAlignment.status,
+        sourceObservedAt: {
+            screener: screener?.fetchedAt ?? null,
+            moneycontrol: moneycontrol?.fetchedAt ?? null,
+            moneycontrolReportedAt: moneycontrol?.lastUpdated ?? null,
+        },
+        periodAlignment,
         sourceComparison,
         sourceStatus: {
             screener: sourceState(requestedSources.screener, screener, errors.screener),

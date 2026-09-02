@@ -28,6 +28,8 @@ export interface PeriodResult {
 
 export interface ScreenerData {
     url: string;
+    fetchedAt: string;
+    latestAnnualPeriod: string | null;
     companyName: string | null;
     currentPrice: number | null;
     marketCapCrore: number | null;
@@ -51,6 +53,7 @@ export interface ScreenerData {
 
 export interface MoneycontrolData {
     url: string;
+    fetchedAt: string;
     companyName: string | null;
     nseCode: string | null;
     bseCode: string | null;
@@ -87,6 +90,9 @@ export interface MetricComparison {
     absoluteDifference: number;
     differencePercent: number;
     withinTolerance: boolean;
+    screenerObservedAt: string;
+    moneycontrolObservedAt: string;
+    unitMismatchType: 'possible-lakh-vs-crore' | null;
 }
 
 export interface SourceComparison {
@@ -99,6 +105,17 @@ export interface SourceComparison {
     agreementPercent: number | null;
     metrics: Record<string, MetricComparison>;
     discrepancies: string[];
+    unitMismatchCount: number;
+    unitMismatchMetrics: string[];
+    validationFlags: string[];
+}
+
+export interface PeriodAlignment {
+    status: 'not-compared' | 'single-source' | 'unavailable';
+    screenerLatestAnnualPeriod: string | null;
+    moneycontrolLatestAnnualPeriod: null;
+    aligned: null;
+    warning: string;
 }
 
 export interface StockRecord {
@@ -137,6 +154,15 @@ export interface StockRecord {
     comparisonStatus: SourceComparisonStatus;
     agreementPercent: number | null;
     discrepancyCount: number;
+    unitMismatchCount: number;
+    validationFlags: string[];
+    fiscalPeriodAlignmentStatus: PeriodAlignment['status'];
+    sourceObservedAt: {
+        screener: string | null;
+        moneycontrol: string | null;
+        moneycontrolReportedAt: string | null;
+    };
+    periodAlignment: PeriodAlignment;
     sourceComparison: SourceComparison;
     sourceStatus: {
         screener: SourceState;

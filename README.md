@@ -16,6 +16,9 @@ For every stock, the Actor can return:
 - absolute and percentage differences per metric;
 - configurable discrepancy tolerance;
 - an agreement percentage and discrepancy list;
+- possible lakh-versus-crore unit mismatch warnings;
+- per-source observation timestamps and Moneycontrol's reported update time;
+- an explicit fiscal-period alignment status instead of silently comparing unlike periods;
 - optional Screener financial summaries and shareholding data.
 
 This is a **source-comparison tool**, not another long-history market-data Actor.
@@ -56,6 +59,14 @@ Each saved item contains top-level fields for filtering plus the full comparison
   "comparisonStatus": "compared",
   "agreementPercent": 75,
   "discrepancyCount": 2,
+  "unitMismatchCount": 0,
+  "validationFlags": ["marketCapCrore:difference-above-tolerance"],
+  "fiscalPeriodAlignmentStatus": "not-compared",
+  "sourceObservedAt": {
+    "screener": "2026-09-02T10:00:00.000Z",
+    "moneycontrol": "2026-09-02T10:00:00.250Z",
+    "moneycontrolReportedAt": "2026-09-02T15:29:58+05:30"
+  },
   "currentPrice": 1500,
   "currentPriceSource": "moneycontrol",
   "sourceComparison": {
@@ -72,10 +83,26 @@ Each saved item contains top-level fields for filtering plus the full comparison
         "moneycontrolValue": 1500,
         "absoluteDifference": 2,
         "differencePercent": 0.1334,
-        "withinTolerance": true
+        "withinTolerance": true,
+        "screenerObservedAt": "2026-09-02T10:00:00.000Z",
+        "moneycontrolObservedAt": "2026-09-02T10:00:00.250Z",
+        "unitMismatchType": null
       }
     },
-    "discrepancies": ["marketCapCrore", "peRatio"]
+    "discrepancies": ["marketCapCrore", "peRatio"],
+    "unitMismatchCount": 0,
+    "unitMismatchMetrics": [],
+    "validationFlags": [
+      "marketCapCrore:difference-above-tolerance",
+      "peRatio:difference-above-tolerance"
+    ]
+  },
+  "periodAlignment": {
+    "status": "not-compared",
+    "screenerLatestAnnualPeriod": "Mar 2026",
+    "moneycontrolLatestAnnualPeriod": null,
+    "aligned": null,
+    "warning": "Moneycontrol quote data does not expose a fiscal period. Period-dependent metrics such as ROE and ROCE are not compared across sources."
   },
   "sourceStatus": {
     "screener": {
@@ -111,6 +138,12 @@ When both sources provide them, the Actor compares:
 
 The percentage difference is symmetric: neither source is treated as the unquestioned baseline. A 2% tolerance means a difference of 2% or less is counted as an agreement.
 
+For `marketCapCrore`, a roughly 100x source difference adds a `possible-lakh-vs-crore` warning. This is a review flag, not an automatic correction: a 100x difference can also indicate a wrong company match or stale source data.
+
+Every compared metric includes the time each source was fetched. Moneycontrol's own reported quote timestamp is retained separately when available. Screener.in does not expose an equivalent timestamp for every field, so the Actor labels the collection time rather than presenting it as a source publication time.
+
+The Moneycontrol quote feed does not expose a comparable fiscal reporting period. The Actor therefore reports fiscal alignment as `not-compared` and does not cross-source compare period-dependent ROE or ROCE values. Optional financial periods remain clearly identified as Screener-only context.
+
 ## Other Data Returned
 
 | Group | Fields |
@@ -121,7 +154,8 @@ The percentage difference is symmetric: neither source is treated as the unquest
 | Profitability | `roePercent`, `rocePercent`, `salesGrowth3YPercent`, `profitGrowth3YPercent` |
 | Ownership | `promoterHoldingPercent`, `fiiHoldingPercent`, `diiHoldingPercent`, `publicHoldingPercent` |
 | Optional summaries | `quarterlyResults`, `annualResults` |
-| Traceability | `sourceStatus`, `sourceData`, `scrapedAt` |
+| Validation | `validationFlags`, `unitMismatchCount`, `sourceComparison`, `periodAlignment` |
+| Traceability | `sourceStatus`, `sourceData`, `sourceObservedAt`, `scrapedAt` |
 
 Financial statement values are in INR crores. Price and per-share values are in INR. Percentage fields use percentage points, so `18.5` means 18.5%.
 
@@ -162,6 +196,8 @@ Selecting both sources still creates and charges only one dataset item per stock
 
 - A match means the values fall within your selected tolerance; it does not prove either source is correct.
 - Differences can be legitimate because of market movement, reporting periods, rounding, or source methodology.
+- Lakh/crore warnings identify suspicious scale differences but do not automatically rewrite source values.
+- Fiscal-period alignment remains `not-compared` when Moneycontrol does not expose a matching reporting period.
 - Moneycontrol values may change during market hours.
 - Optional statement and shareholding fields come from Screener.in and are supporting context, not dual-source comparisons.
 - Source websites can change their public pages or rate limits.

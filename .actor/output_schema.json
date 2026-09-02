@@ -1,7 +1,7 @@
 {
   "actorOutputSchemaVersion": 1,
   "title": "Moneycontrol + Screener Comparison Output",
-  "description": "Normalized Indian stock records with source availability, side-by-side Moneycontrol and Screener values, percentage differences, discrepancy flags, and agreement scores.",
+  "description": "Normalized Indian stock records with source availability, side-by-side values, percentage differences, lakh/crore warnings, source observation timestamps, fiscal-period limitations, and agreement scores.",
   "type": "object",
   "properties": {
     "results": {
