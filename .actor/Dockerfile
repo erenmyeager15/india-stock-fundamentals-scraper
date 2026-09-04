@@ -1,9 +1,8 @@
 FROM apify/actor-node:20
 
 COPY --chown=myuser package*.json ./
-RUN npm --quiet set progress=false && npm ci --include=dev --omit=optional
+RUN npm --quiet set progress=false && npm ci --omit=dev --omit=optional
 
-COPY --chown=myuser . ./
-RUN npm run build && npm prune --omit=dev --no-package-lock
+COPY --chown=myuser dist ./dist
 
 CMD ["node", "dist/main.js"]
