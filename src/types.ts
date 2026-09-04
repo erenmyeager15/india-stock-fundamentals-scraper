@@ -87,12 +87,17 @@ export interface SourceState {
 export interface MetricComparison {
     screenerValue: number;
     moneycontrolValue: number;
+    comparedScreenerValue: number;
+    comparedMoneycontrolValue: number;
     absoluteDifference: number;
     differencePercent: number;
+    rawDifferencePercent: number;
     withinTolerance: boolean;
     screenerObservedAt: string;
     moneycontrolObservedAt: string;
     unitMismatchType: 'possible-lakh-vs-crore' | null;
+    unitMismatchResolution: 'auto-resolved' | 'unresolved' | null;
+    unitConversionApplied: 'screener-lakh-to-crore' | 'moneycontrol-lakh-to-crore' | null;
 }
 
 export interface SourceComparison {
@@ -115,7 +120,21 @@ export interface PeriodAlignment {
     screenerLatestAnnualPeriod: string | null;
     moneycontrolLatestAnnualPeriod: null;
     aligned: null;
+    sourcePeriodAssumptions: {
+        screener: string;
+        moneycontrol: string;
+    };
+    screenerPeriodResolution: FiscalPeriodResolution | null;
+    moneycontrolPeriodResolution: FiscalPeriodResolution | null;
     warning: string;
+}
+
+export interface FiscalPeriodResolution {
+    source: 'screener' | 'moneycontrol';
+    rawPeriod: string;
+    normalizedEndDate: string | null;
+    method: 'explicit-month-year' | 'source-fy-assumption' | 'unrecognized';
+    assumption: string | null;
 }
 
 export interface StockRecord {

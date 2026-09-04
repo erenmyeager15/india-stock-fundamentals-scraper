@@ -16,7 +16,7 @@ For every stock, the Actor can return:
 - absolute and percentage differences per metric;
 - configurable discrepancy tolerance;
 - an agreement percentage and discrepancy list;
-- possible lakh-versus-crore unit mismatch warnings;
+- lakh-versus-crore normalization with explicit soft flags and raw-value traceability;
 - per-source observation timestamps and Moneycontrol's reported update time;
 - an explicit fiscal-period alignment status instead of silently comparing unlike periods;
 - optional Screener financial summaries and shareholding data.
@@ -86,7 +86,9 @@ Each saved item contains top-level fields for filtering plus the full comparison
         "withinTolerance": true,
         "screenerObservedAt": "2026-09-02T10:00:00.000Z",
         "moneycontrolObservedAt": "2026-09-02T10:00:00.250Z",
-        "unitMismatchType": null
+        "unitMismatchType": null,
+        "unitMismatchResolution": null,
+        "unitConversionApplied": null
       }
     },
     "discrepancies": ["marketCapCrore", "peRatio"],
@@ -138,11 +140,11 @@ When both sources provide them, the Actor compares:
 
 The percentage difference is symmetric: neither source is treated as the unquestioned baseline. A 2% tolerance means a difference of 2% or less is counted as an agreement.
 
-For `marketCapCrore`, a roughly 100x source difference adds a `possible-lakh-vs-crore` warning. This is a review flag, not an automatic correction: a 100x difference can also indicate a wrong company match or stale source data.
+For `marketCapCrore`, a roughly 100x source difference triggers a lakh/crore check. If dividing the larger value by 100 brings both sources within your configured tolerance, the Actor marks the unit mismatch as `auto-resolved`, compares the normalized values, and does not count the same field again as a value discrepancy. Raw source values and the raw difference remain in the comparison output. If normalization does not resolve the difference, the warning remains unresolved for review.
 
 Every compared metric includes the time each source was fetched. Moneycontrol's own reported quote timestamp is retained separately when available. Screener.in does not expose an equivalent timestamp for every field, so the Actor labels the collection time rather than presenting it as a source publication time.
 
-The Moneycontrol quote feed does not expose a comparable fiscal reporting period. The Actor therefore reports fiscal alignment as `not-compared` and does not cross-source compare period-dependent ROE or ROCE values. Optional financial periods remain clearly identified as Screener-only context.
+The Moneycontrol quote feed does not expose a comparable fiscal reporting period. The Actor therefore reports fiscal alignment as `not-compared` and does not cross-source compare period-dependent ROE or ROCE values. Explicit periods such as `Mar 2026` are normalized directly. Ambiguous labels such as `FY24` use a visible per-source assumption of an Indian fiscal year ending March 31 (`2024-03-31`); the applied method and assumption are included in `periodAlignment` rather than silently guessed. Optional financial periods remain clearly identified as Screener-only context.
 
 ## Other Data Returned
 
@@ -196,7 +198,7 @@ Selecting both sources still creates and charges only one dataset item per stock
 
 - A match means the values fall within your selected tolerance; it does not prove either source is correct.
 - Differences can be legitimate because of market movement, reporting periods, rounding, or source methodology.
-- Lakh/crore warnings identify suspicious scale differences but do not automatically rewrite source values.
+- Lakh/crore normalization never rewrites raw source values; it only changes the values used for comparison when a 100x conversion resolves the mismatch within tolerance.
 - Fiscal-period alignment remains `not-compared` when Moneycontrol does not expose a matching reporting period.
 - Moneycontrol values may change during market hours.
 - Optional statement and shareholding fields come from Screener.in and are supporting context, not dual-source comparisons.

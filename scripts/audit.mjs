@@ -80,8 +80,16 @@ const unitMismatch = createSourceComparison(
     2,
 );
 assert.equal(unitMismatch.metrics.marketCapCrore.unitMismatchType, 'possible-lakh-vs-crore');
+assert.equal(unitMismatch.metrics.marketCapCrore.unitMismatchResolution, 'auto-resolved');
+assert.equal(unitMismatch.metrics.marketCapCrore.unitConversionApplied, 'moneycontrol-lakh-to-crore');
+assert.equal(unitMismatch.metrics.marketCapCrore.comparedMoneycontrolValue, 1000);
+assert.equal(unitMismatch.metrics.marketCapCrore.rawDifferencePercent, 196.0396);
+assert.equal(unitMismatch.metrics.marketCapCrore.differencePercent, 0);
+assert.equal(unitMismatch.metrics.marketCapCrore.withinTolerance, true);
+assert.equal(unitMismatch.discrepancyCount, 0);
+assert.deepEqual(unitMismatch.discrepancies, []);
 assert.deepEqual(unitMismatch.unitMismatchMetrics, ['marketCapCrore']);
-assert.ok(unitMismatch.validationFlags.includes('marketCapCrore:possible-lakh-vs-crore'));
+assert.deepEqual(unitMismatch.validationFlags, ['marketCapCrore:lakh-crore-auto-resolved']);
 
 const partial = createSourceComparison(
     { screener: true, moneycontrol: true },
@@ -119,7 +127,22 @@ assert.deepEqual(record.sourceObservedAt, {
 });
 assert.equal(record.fiscalPeriodAlignmentStatus, 'not-compared');
 assert.equal(record.periodAlignment.screenerLatestAnnualPeriod, 'Mar 2026');
+assert.equal(record.periodAlignment.screenerPeriodResolution.normalizedEndDate, '2026-03-31');
+assert.equal(record.periodAlignment.screenerPeriodResolution.method, 'explicit-month-year');
 assert.match(record.periodAlignment.warning, /does not expose a fiscal period/);
+
+const fiscalAssumptionRecord = createStockRecord(
+    'TEST',
+    { screener: true, moneycontrol: true },
+    { ...screener, latestAnnualPeriod: 'FY24' },
+    moneycontrol,
+    { screener: null, moneycontrol: null },
+    2,
+);
+assert.equal(fiscalAssumptionRecord.periodAlignment.screenerPeriodResolution.normalizedEndDate, '2024-03-31');
+assert.equal(fiscalAssumptionRecord.periodAlignment.screenerPeriodResolution.method, 'source-fy-assumption');
+assert.match(fiscalAssumptionRecord.periodAlignment.screenerPeriodResolution.assumption, /March 31/);
+assert.match(fiscalAssumptionRecord.periodAlignment.sourcePeriodAssumptions.moneycontrol, /March 31/);
 
 const inputSchema = JSON.parse(await readFile(new URL('../INPUT_SCHEMA.json', import.meta.url), 'utf8'));
 assert.equal(inputSchema.properties.source.default, 'both');

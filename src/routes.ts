@@ -3,6 +3,7 @@ import { ProxyAgent, fetch } from 'undici';
 import type { ProxyConfiguration } from 'crawlee';
 import type {
     ActorInput,
+    FiscalPeriodResolution,
     MetricComparison,
     MoneycontrolData,
     PeriodAlignment,
@@ -374,6 +375,44 @@ function possibleLakhCroreMismatch(metric: string, left: number, right: number):
     return ratio >= 90 && ratio <= 110;
 }
 
+function normalizeLakhCroreValues(
+    metric: string,
+    screenerValue: number,
+    moneycontrolValue: number,
+    tolerancePercent: number,
+): {
+    screenerValue: number;
+    moneycontrolValue: number;
+    mismatchType: MetricComparison['unitMismatchType'];
+    resolution: MetricComparison['unitMismatchResolution'];
+    conversion: MetricComparison['unitConversionApplied'];
+} {
+    if (!possibleLakhCroreMismatch(metric, screenerValue, moneycontrolValue)) {
+        return {
+            screenerValue,
+            moneycontrolValue,
+            mismatchType: null,
+            resolution: null,
+            conversion: null,
+        };
+    }
+
+    const screenerIsLarger = Math.abs(screenerValue) > Math.abs(moneycontrolValue);
+    const normalizedScreener = screenerIsLarger ? screenerValue / 100 : screenerValue;
+    const normalizedMoneycontrol = screenerIsLarger ? moneycontrolValue : moneycontrolValue / 100;
+    const resolvesMismatch = symmetricDifferencePercent(normalizedScreener, normalizedMoneycontrol) <= tolerancePercent;
+
+    return {
+        screenerValue: resolvesMismatch ? normalizedScreener : screenerValue,
+        moneycontrolValue: resolvesMismatch ? normalizedMoneycontrol : moneycontrolValue,
+        mismatchType: 'possible-lakh-vs-crore',
+        resolution: resolvesMismatch ? 'auto-resolved' : 'unresolved',
+        conversion: resolvesMismatch
+            ? screenerIsLarger ? 'screener-lakh-to-crore' : 'moneycontrol-lakh-to-crore'
+            : null,
+    };
+}
+
 export function createSourceComparison(
     requestedSources: { screener: boolean; moneycontrol: boolean },
     screener: ScreenerData | null,
@@ -389,19 +428,31 @@ export function createSourceComparison(
             const moneycontrolValue = metric.moneycontrol(moneycontrol);
             if (screenerValue === null || moneycontrolValue === null) continue;
 
-            const differencePercent = symmetricDifferencePercent(screenerValue, moneycontrolValue);
-            const unitMismatchType = possibleLakhCroreMismatch(metric.name, screenerValue, moneycontrolValue)
-                ? 'possible-lakh-vs-crore'
-                : null;
+            const rawDifferencePercent = symmetricDifferencePercent(screenerValue, moneycontrolValue);
+            const normalized = normalizeLakhCroreValues(
+                metric.name,
+                screenerValue,
+                moneycontrolValue,
+                safeTolerance,
+            );
+            const differencePercent = symmetricDifferencePercent(
+                normalized.screenerValue,
+                normalized.moneycontrolValue,
+            );
             metrics[metric.name] = {
                 screenerValue,
                 moneycontrolValue,
-                absoluteDifference: round(Math.abs(screenerValue - moneycontrolValue)),
+                comparedScreenerValue: normalized.screenerValue,
+                comparedMoneycontrolValue: normalized.moneycontrolValue,
+                absoluteDifference: round(Math.abs(normalized.screenerValue - normalized.moneycontrolValue)),
                 differencePercent: round(differencePercent),
+                rawDifferencePercent: round(rawDifferencePercent),
                 withinTolerance: differencePercent <= safeTolerance,
                 screenerObservedAt: screener.fetchedAt,
                 moneycontrolObservedAt: moneycontrol.fetchedAt,
-                unitMismatchType,
+                unitMismatchType: normalized.mismatchType,
+                unitMismatchResolution: normalized.resolution,
+                unitConversionApplied: normalized.conversion,
             };
         }
     }
@@ -417,7 +468,9 @@ export function createSourceComparison(
         .map(([metric]) => metric);
     const validationFlags = [
         ...discrepancies.map((metric) => `${metric}:difference-above-tolerance`),
-        ...unitMismatchMetrics.map((metric) => `${metric}:possible-lakh-vs-crore`),
+        ...unitMismatchMetrics.map((metric) => metrics[metric].unitMismatchResolution === 'auto-resolved'
+            ? `${metric}:lakh-crore-auto-resolved`
+            : `${metric}:possible-lakh-vs-crore`),
     ];
 
     let status: SourceComparison['status'];
@@ -444,13 +497,71 @@ export function createSourceComparison(
     };
 }
 
+const FISCAL_PERIOD_ASSUMPTIONS = {
+    screener: 'FY labels are interpreted as Indian fiscal years ending March 31 of the named year.',
+    moneycontrol: 'FY labels are interpreted as Indian fiscal years ending March 31 of the named year.',
+} as const;
+
+export function normalizeFiscalPeriod(
+    source: 'screener' | 'moneycontrol',
+    rawPeriod: string,
+): FiscalPeriodResolution {
+    const cleaned = cleanText(rawPeriod);
+    const explicit = cleaned.match(/^([A-Z][a-z]{2})\s+(\d{4})$/);
+    if (explicit) {
+        const monthIndex = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            .indexOf(explicit[1]);
+        if (monthIndex >= 0) {
+            const year = Number(explicit[2]);
+            const lastDay = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+            return {
+                source,
+                rawPeriod: cleaned,
+                normalizedEndDate: `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`,
+                method: 'explicit-month-year',
+                assumption: null,
+            };
+        }
+    }
+
+    const fiscalYear = cleaned.match(/^FY\s*['’]?(\d{2}|\d{4})$/i);
+    if (fiscalYear) {
+        const parsedYear = Number(fiscalYear[1]);
+        const endYear = fiscalYear[1].length === 2 ? 2000 + parsedYear : parsedYear;
+        return {
+            source,
+            rawPeriod: cleaned,
+            normalizedEndDate: `${endYear}-03-31`,
+            method: 'source-fy-assumption',
+            assumption: FISCAL_PERIOD_ASSUMPTIONS[source],
+        };
+    }
+
+    return {
+        source,
+        rawPeriod: cleaned,
+        normalizedEndDate: null,
+        method: 'unrecognized',
+        assumption: null,
+    };
+}
+
 function createPeriodAlignment(screener: ScreenerData | null, moneycontrol: MoneycontrolData | null): PeriodAlignment {
+    const screenerPeriodResolution = screener?.latestAnnualPeriod
+        ? normalizeFiscalPeriod('screener', screener.latestAnnualPeriod)
+        : null;
+    const sharedFields = {
+        sourcePeriodAssumptions: FISCAL_PERIOD_ASSUMPTIONS,
+        screenerPeriodResolution,
+        moneycontrolPeriodResolution: null,
+    };
     if (screener && moneycontrol) {
         return {
             status: 'not-compared',
             screenerLatestAnnualPeriod: screener.latestAnnualPeriod,
             moneycontrolLatestAnnualPeriod: null,
             aligned: null,
+            ...sharedFields,
             warning: 'Moneycontrol quote data does not expose a fiscal period. Period-dependent metrics such as ROE and ROCE are not compared across sources.',
         };
     }
@@ -460,6 +571,7 @@ function createPeriodAlignment(screener: ScreenerData | null, moneycontrol: Mone
             screenerLatestAnnualPeriod: screener?.latestAnnualPeriod ?? null,
             moneycontrolLatestAnnualPeriod: null,
             aligned: null,
+            ...sharedFields,
             warning: 'Fiscal-period alignment requires comparable period data from both sources.',
         };
     }
@@ -468,6 +580,7 @@ function createPeriodAlignment(screener: ScreenerData | null, moneycontrol: Mone
         screenerLatestAnnualPeriod: null,
         moneycontrolLatestAnnualPeriod: null,
         aligned: null,
+        ...sharedFields,
         warning: 'No source data was available for fiscal-period alignment.',
     };
 }
