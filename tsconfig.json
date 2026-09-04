@@ -13,7 +13,8 @@
     "resolveJsonModule": true,
     "declaration": false,
     "declarationMap": false,
-    "sourceMap": true
+    "sourceMap": true,
+    "incremental": false
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
