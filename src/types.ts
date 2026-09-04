@@ -2,6 +2,10 @@ export type DataSource = 'screener' | 'moneycontrol' | 'both';
 
 export type SourceComparisonStatus = 'compared' | 'partial' | 'not-requested' | 'no-comparable-values';
 
+export interface ProxyUrlProvider {
+    newUrl(sessionId?: string): string | Promise<string>;
+}
+
 export interface ActorInput {
     symbols: string[];
     source?: DataSource;

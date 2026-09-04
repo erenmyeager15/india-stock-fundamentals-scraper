@@ -1,7 +1,6 @@
 import { Actor, log } from 'apify';
-import type { ProxyConfiguration } from 'crawlee';
 import { createStockRecord, scrapeMoneycontrol, scrapeScreener } from './routes.js';
-import type { ActorInput, MoneycontrolData, ScreenerData } from './types.js';
+import type { ActorInput, MoneycontrolData, ProxyUrlProvider, ScreenerData } from './types.js';
 
 const DEFAULT_INPUT: Required<Pick<ActorInput,
     | 'symbols'
@@ -79,14 +78,14 @@ try {
         const tasks: Promise<void>[] = [];
         if (wantsScreener) {
             tasks.push(
-                scrapeScreener(symbol, input, proxyConfiguration as ProxyConfiguration | undefined)
+                scrapeScreener(symbol, input, proxyConfiguration as ProxyUrlProvider | undefined)
                     .then((data) => { screener = data; })
                     .catch((error) => { errors.screener = errorMessage(error); }),
             );
         }
         if (wantsMoneycontrol) {
             tasks.push(
-                scrapeMoneycontrol(symbol, proxyConfiguration as ProxyConfiguration | undefined)
+                scrapeMoneycontrol(symbol, proxyConfiguration as ProxyUrlProvider | undefined)
                     .then((data) => { moneycontrol = data; })
                     .catch((error) => { errors.moneycontrol = errorMessage(error); }),
             );

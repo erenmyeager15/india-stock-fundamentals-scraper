@@ -1,6 +1,5 @@
 import { load, type CheerioAPI } from 'cheerio';
 import { ProxyAgent, fetch } from 'undici';
-import type { ProxyConfiguration } from 'crawlee';
 import type {
     ActorInput,
     FiscalPeriodResolution,
@@ -8,6 +7,7 @@ import type {
     MoneycontrolData,
     PeriodAlignment,
     PeriodResult,
+    ProxyUrlProvider,
     ScreenerData,
     SourceState,
     SourceComparison,
@@ -62,7 +62,7 @@ export function parseNumber(value: unknown): number | null {
 async function fetchResource<T extends 'text' | 'json'>(
     url: string,
     responseType: T,
-    proxyConfiguration?: ProxyConfiguration,
+    proxyConfiguration?: ProxyUrlProvider,
 ): Promise<T extends 'json' ? unknown : string> {
     let lastError: Error | null = null;
 
@@ -222,7 +222,7 @@ export function parseScreenerHtml(
 export async function scrapeScreener(
     symbol: string,
     options: Pick<ActorInput, 'consolidated' | 'includeFinancials' | 'includeShareholding'>,
-    proxyConfiguration?: ProxyConfiguration,
+    proxyConfiguration?: ProxyUrlProvider,
 ): Promise<ScreenerData> {
     const suffix = options.consolidated ? '/consolidated/' : '/';
     const url = `https://www.screener.in/company/${encodeURIComponent(symbol)}${suffix}`;
@@ -291,7 +291,7 @@ export function parseMoneycontrolQuote(
 
 export async function scrapeMoneycontrol(
     symbol: string,
-    proxyConfiguration?: ProxyConfiguration,
+    proxyConfiguration?: ProxyUrlProvider,
 ): Promise<MoneycontrolData> {
     const searchUrl = `https://www.moneycontrol.com/mccode/common/autosuggestion_solr.php?query=${encodeURIComponent(symbol)}&type=1&format=json`;
     const suggestions = (await fetchResource(searchUrl, 'json', proxyConfiguration)) as MoneycontrolSuggestion[];
