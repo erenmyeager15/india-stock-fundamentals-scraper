@@ -2,7 +2,7 @@
   "actorSpecification": 1,
   "name": "india-stock-fundamentals-scraper",
   "title": "Moneycontrol + Screener Stock Data Validator",
-  "description": "Compare Indian stock data from Moneycontrol and Screener.in for $2 per 1,000 stocks. Get percentage differences, mismatch flags, source timestamps, fiscal-period warnings, agreement scores, and traceability.",
+  "description": "Audit Indian stock watchlists across Moneycontrol and Screener.in for $2 per 1,000 stocks. Get agreement scores, mismatch flags, source timestamps, lakh/crore checks, fiscal-period warnings, and traceability.",
   "version": "1.1",
   "buildTag": "latest",
   "categories": ["BUSINESS", "DEVELOPER_TOOLS"],

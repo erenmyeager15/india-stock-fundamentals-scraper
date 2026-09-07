@@ -6,6 +6,27 @@ Moneycontrol and Screener.in can show different prices, market caps, valuation r
 
 Use it for data-quality checks, spreadsheet validation, portfolio dashboards, source monitoring, and research pipelines that should not silently trust a single website. No login or API key is required.
 
+**What you get for one stock:** one normalized dataset row containing both sources, an agreement score, explicit mismatch flags, source timestamps, lakh/crore checks, and fiscal-period warnings. Selecting both sources does not create a second billable result. A one-stock run is approximately $0.00205 including the minimum start event.
+
+## Audit a watchlist before analysis
+
+Run a short list through both sources before it enters a spreadsheet, dashboard, or research model:
+
+```json
+{
+  "symbols": ["RELIANCE", "TCS", "INFY", "HDFCBANK", "ITC"],
+  "source": "both",
+  "comparisonTolerancePercent": 2,
+  "requireBothSources": true,
+  "includeFinancials": false,
+  "includeShareholding": false,
+  "maxResults": 5,
+  "maxConcurrency": 2
+}
+```
+
+Filter the output by `validationFlags`, `discrepancyCount`, `unitMismatchCount`, or `agreementPercent` to review only questionable records. At the listed rate, five successfully saved stocks cost about $0.01005 including the minimum start event.
+
 ## What Makes This Actor Different
 
 For every stock, the Actor can return:
@@ -25,7 +46,7 @@ This is a **source-comparison tool**, not another long-history market-data Actor
 
 Need live NSE/BSE index data, market statistics, peers, 13 quarters, and up to 12 annual years? Use [Indian Stocks: NSE/BSE Data & Financials](https://apify.com/fascinating_lentil/nse-bse-scraper).
 
-## Quick Start
+## Single-stock quick start
 
 The input form is ready to run without editing: it compares one Reliance record across Moneycontrol and Screener.in with a 2% tolerance, requires both sources for the sample, and uses no proxy. Inspect the agreement score and per-metric differences, then add more symbols or optional Screener.in enrichment.
 
